@@ -12,3 +12,5 @@ This software was developed as part of the XMM2ATHENA project. This project has 
 Union's Horizon 2020 research and innovation programme under grant agreement n°101004168, the XMM2ATHENA project.
 
 Author: Erwan Quintin, erwan.quintin@irap.omp.eu
+
+NOTE: In its current form, the software will not work because it will be missing the catalog data. Once a solution has been found to host this massive data in a sustainable fashion, this repository will be updated.
