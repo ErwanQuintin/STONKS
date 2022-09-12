@@ -8,6 +8,8 @@ This repository contains 3 Python scripts:
 3. **StudyMasterSources.py**, which is used for data mining in the archival catalog.
 4. **api.py** is the API for the RapidXMM software, used for computation of XMM-Newton upper limits (Ruiz et al. 2021)
 
+Further documentation is available in STONKS_Documentation.pdf if needed.
+
 This software was developed as part of the XMM2ATHENA project. This project has received funding from the European
 Union's Horizon 2020 research and innovation programme under grant agreement n°101004168, the XMM2ATHENA project.
 
