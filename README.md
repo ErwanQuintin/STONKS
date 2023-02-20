@@ -7,7 +7,7 @@ The updated framework is meant to be used with a single input position and flux 
 This repository contains 3 Python scripts:
 1. **LoadSpecificMasterSources.py**, which is used to load the archival X-ray data in the form of a MasterSource object matching the input position;
 2. **STONKS_PreComputed_Position_alert.py**, which will compare the new detection to any archival MasterSource, and compute upper-limits if there are no known MasterSource;
-3 **api.py** is the API for the RapidXMM software, used for computation of XMM-Newton upper limits (Ruiz et al. 2021)
+3. **api.py** is the API for the RapidXMM software, used for computation of XMM-Newton upper limits (Ruiz et al. 2021)
 
 Further documentation is available in STONKS_Documentation.pdf if needed.
 
