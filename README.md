@@ -1,12 +1,13 @@
 The Search for Transient Objects in New detections using Known Sources (STONKS) software is meant to allow automatic
-comparison between the PPS file of a new XMM-Newton observation, and all the available archival X-ray data. It will send
-out an alert and plot the lightcurve and available data for all sources with a long-term variability over a factor of 5.
+comparison between the detections of a new XMM-Newton observation, and all the available archival X-ray data. It will send
+out an alert and save the lightcurve and available data for all sources with a long-term variability over a factor of 5.
+The updated framework is meant to be used with a single input position and flux state.
+
 
 This repository contains 3 Python scripts:
-1. **LoadMasterSources.py**, which is used to load the archival X-ray data in the form of MasterSource objects;
-2. **STONKS_pipeline_alert.py**, which loads the archival X-ray data using LoadMasterSources.py and compare it to the PPS file of a new XMM-Newton observation;
-3. **StudyMasterSources.py**, which is used for data mining in the archival catalog.
-4. **api.py** is the API for the RapidXMM software, used for computation of XMM-Newton upper limits (Ruiz et al. 2021)
+1. **LoadSpecificMasterSources.py**, which is used to load the archival X-ray data in the form of a MasterSource object matching the input position;
+2. **STONKS_PreComputed_Position_alert.py**, which will compare the new detection to any archival MasterSource, and compute upper-limits if there are no known MasterSource;
+3 **api.py** is the API for the RapidXMM software, used for computation of XMM-Newton upper limits (Ruiz et al. 2021)
 
 Further documentation is available in STONKS_Documentation.pdf if needed.
 
