@@ -685,11 +685,16 @@ class MasterSource:
         luminosity_track = np.array(luminosity_track)[order]
         hardness_err_track=[np.array(hardness_err_track[0])[order],np.array(hardness_err_track[1])[order]]
         luminosity_err_track=[np.array(luminosity_err_track[0])[order],np.array(luminosity_err_track[1])[order]]
-        time_track = np.array(time_track)[order]
         catalogs_track = np.array(catalogs_track)[order]
-        color_track = np.array([matplotlib.cm.get_cmap('inferno')((time-time_track[0])/(time_track[-1]-time_track[0])) for time in time_track])
+
+        correct_indices = np.where(~np.isnan(hardness_track))[0]
+        hardness_track = np.array(hardness_track)[correct_indices]
+        luminosity_track = np.array(luminosity_track)[correct_indices]
+        hardness_err_track = [np.array(hardness_err_track[0])[correct_indices], np.array(hardness_err_track[1])[correct_indices]]
+        luminosity_err_track = [np.array(luminosity_err_track[0])[correct_indices], np.array(luminosity_err_track[1])[correct_indices]]
+        catalogs_track = np.array(catalogs_track)[correct_indices]
+  
         ax3.errorbar(hardness_track,luminosity_track,xerr=hardness_err_track,yerr=luminosity_err_track, alpha=0.2, linestyle="--")
-        #ax3.scatter(hardness_track,luminosity_track, c=ax3.lines[-1].get_color())
         for cat in catalogs:
             ax3.scatter(hardness_track[catalogs_track==cat], luminosity_track[catalogs_track==cat], c=ax3.lines[-1].get_color(),marker=hr_track_markers[cat], s=50, label=cat, edgecolors="gray")
 
