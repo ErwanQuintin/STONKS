@@ -58,7 +58,7 @@ def testing_functions_0804670301():
     pbar=tqdm(total=len(sources_raw))
     for ra, dec, pos_err, flux, flux_err, band_flux, band_fluxerr, date, src_num in \
             zip(sources_raw["RA"],sources_raw["DEC"],sources_raw["RADEC_ERR"], sources_raw["EP_TOT_FLUX"],\
-                    sources_raw["ERR_EP_TOT_FLUX"],tab_band_fluxes, tab_band_fluxerr,[56061.15969907407]*len(sources_raw), range(len(sources_raw))):
+                    sources_raw["ERR_EP_TOT_FLUX"],tab_band_fluxes, tab_band_fluxerr,[56061.15969907407]*len(sources_raw), sources_raw["SRC_NUM"]):
         start = time.time()
         tab_alerts += transient_alert(1, ra, dec, pos_err, flux, flux_err, band_flux,
                                      band_fluxerr, date,src_num, var_flag=False)
