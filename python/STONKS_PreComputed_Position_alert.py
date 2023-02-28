@@ -46,12 +46,12 @@ def load_master_sources_positions(obsid, ra_target, dec_target):
     list_precomputed_obsids = os.listdir(os.path.join(path_to_master_sources,'PreComputedObsidMatches'))
     list_precomputed_obsids=[elt.split(".")[0] for elt in list_precomputed_obsids]
     if str(obsid) not in list_precomputed_obsids:
-        cmd = f"{stilt_cmd} tpipe {os.path.join(path_to_master_sources,'Master_source_HistoricalExtremes.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
+        cmd = f"stilts tpipe {os.path.join(path_to_master_sources,'Master_source_HistoricalExtremes.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
         out={os.path.join(path_to_master_sources,'PreComputedObsidMatches',str(obsid)+'.fits')}"
         cmd = shlex.split(cmd)
         subprocess.run(cmd)
 
-        cmd = f"{stilt_cmd} tpipe {os.path.join(path_to_master_sources,'Master_source_XMM_UpperLimits.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
+        cmd = f"stilts tpipe {os.path.join(path_to_master_sources,'Master_source_XMM_UpperLimits.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
                 out={os.path.join(path_to_master_sources,'PreComputedObsidMatches','UpperLimits_'+str(obsid)+'.fits')}"
         cmd = shlex.split(cmd)
         subprocess.run(cmd)
@@ -188,12 +188,14 @@ def compute_upper_limit(ra, dec, flux):
         slew_ul_dates = Time(tab_slew_upper_limits['start_date'],format="isot").mjd
     return xmm_ul, xmm_ul_dates, slew_ul, slew_ul_dates
 
-def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date, var_flag, ul=True):
+def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date, src_num, var_flag, ul=True):
     """
     Sends out alerts in the case of a transient object
-    :param obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date: all information
-    relative to the new detection. Band_fluxes corresponds to the fluxes in the 5 bands. ul is a boolean, if True
-    then the upper limits are computed in the case of a new MasterSource.
+    :param obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date, src_num, var_flag:
+    all information relative to the new detection. Band_fluxes corresponds to the fluxes in the 5 bands.
+    src_num is the identifier from the OBSMLI file, used as filename for the saved lightcurve.
+    var_flag is the flag for short-term variability.
+    ul is a boolean, if True then the upper limits are computed in the case of a new MasterSource.
     :return: tab_alerts: list containing the MasterSource if it's variable (in which case we save a PDF of the
     lightcurve as well), or empty list if not variable.
     """
@@ -216,7 +218,9 @@ def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_
             new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                            date)
             old_ms = list(load_specific_master_sources(tab_ms_id[index_impacted_master_sources[0]],obsid, ra_target, dec_target).values())[0]
-            new_ms = MasterSource(old_ms.id,  list(old_ms.sources.values())+[new_source], old_ms.ra, old_ms.dec, old_ms.pos_err,[])
+            new_ms = MasterSource(old_ms.id,  list(old_ms.sources.values())+[new_source], old_ms.ra, old_ms.dec, old_ms.pos_err,[], src_num)
+            new_ms.xmm_ul, new_ms.xmm_ul_dates = old_ms.xmm_ul,old_ms.xmm_ul_dates
+            new_ms.slew_ul, new_ms.slew_ul_dates = old_ms.slew_ul,old_ms.slew_ul_dates
             new_ms.has_short_term_var= (old_ms.has_short_term_var or var_flag)
             new_ms.simbad_type=old_ms.simbad_type[0]
             tab_alerts.append(new_ms)
@@ -228,19 +232,22 @@ def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_
                 if (np.nanmin(xmm_ul+slew_ul) < (flux-flux_err)/5) or var_flag:
                     new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                                    date)
-                    new_ms = MasterSource(- 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
+                    new_ms = MasterSource(- 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [], src_num)
                     new_ms.has_short_term_var = var_flag
                     new_ms.xmm_ul = xmm_ul
                     new_ms.xmm_ul_dates = xmm_ul_dates
                     new_ms.slew_ul = slew_ul
                     new_ms.slew_ul_dates = slew_ul_dates
+                    new_ms.var_ratio = (flux-flux_err)/np.nanmin(xmm_ul+slew_ul)
                     tab_alerts.append(new_ms)
+
         elif var_flag:
             new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                            date)
-            new_ms = MasterSource(- 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
+            new_ms = MasterSource(- 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [], src_num)
             new_ms.has_short_term_var = var_flag
             tab_alerts.append(new_ms)
+
     return tab_alerts
 
 
@@ -257,10 +264,8 @@ def testing_functions_NGC7793():
     band_fluxerr = [[[3e-13]*5],[[3e-13]*5]]
     date = Time(2022.0, format="decimalyear").mjd
 
-    src_list_path = os.path.join(path_to_master_sources, "Master_source_TestPipeline_NGC7793.fits")
-    src_list_path = os.path.join(path_to_master_sources, "P0804670301EPX000OBSMLI0000.FIT")
-    print(f"Loading EPIC source list {src_list_path}")
-    raw_data = fits.open(src_list_path, memmap=True)
+
+    raw_data = fits.open(f"{path_to_master_sources}Master_source_TestPipeline_NGC7793.fits", memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
 
@@ -274,16 +279,17 @@ def testing_functions_NGC7793():
     tab_alerts=[]
     start = time.time()
     tab_alerts += transient_alert(1, 359.38, -32.584, 1, 2e-12, 1e-13, band_fluxes,
-                                  band_fluxerr, date, var_flag=True)
+                                  band_fluxerr, date, src_num=-1, var_flag=True)
     end = time.time()
+
     tab_times.append(end - start)
     pbar=tqdm(total=len(sources_raw))
-    for ra, dec, pos_err, flux, flux_err, band_flux, band_fluxerr, date in \
-            zip(sources_raw["MS_RA"],sources_raw["MS_DEC"],sources_raw["MS_POSERR"], sources_raw["EP_8_FLUX"],\
-                    sources_raw["EP_8_FLUX_ERR"],tab_band_fluxes, tab_band_fluxerr,[56061.15969907407]*len(sources_raw)):
+    for ra, dec, flux, flux_err, band_flux, band_fluxerr, date,src_num in \
+            zip(sources_raw["MS_RA"],sources_raw["MS_DEC"], sources_raw["EP_8_FLUX"],\
+                    sources_raw["EP_8_FLUX_ERR"],tab_band_fluxes, tab_band_fluxerr,[56061.15969907407]*len(sources_raw), range(len(sources_raw))):
         start = time.time()
-        tab_alerts += transient_alert(1, ra, dec, pos_err, flux, flux_err, band_flux,
-                                     band_fluxerr, date,var_flag=False)
+        tab_alerts += transient_alert(1, ra, dec, 5, flux, flux_err, band_flux,
+                                     band_fluxerr, date, src_num, var_flag=False)
         end = time.time()
         tab_times.append(end - start)
         pbar.update(1)
@@ -294,6 +300,7 @@ def testing_functions_NGC7793():
     for ms in tab_alerts:
         ms.save_lightcurve(obsid="NGC7793")
 #testing_functions_NGC7793()
+
 
 ra=0 #in Degrees
 dec=0 #in Degrees
