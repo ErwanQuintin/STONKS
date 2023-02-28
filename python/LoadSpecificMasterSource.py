@@ -320,7 +320,7 @@ class MasterSource:
 
     A MasterSource only has one method, plot_lightcurve(), which produces a multi-panel plot of all relevant information
     """
-    def __init__(self, id, tab_sources, ra, dec, poserr, tab_optical_sources):
+    def __init__(self, id, tab_sources, ra, dec, poserr, tab_optical_sources,src_num=-1):
         """
         Initialisation function, used to build a MasterSource object. We also compile the multi-instrument properties at
         this stage (variabilities, HR variabilities,...)
@@ -330,8 +330,10 @@ class MasterSource:
         :param dec: Dec of the MasterSource computed as weighted average of the constituting Source objects
         :param poserr: 1 sigma Position Error of the MasterSource computed as weighted average of the constituting Source objects
         :param tab_optical_sources: Table containing the OpticalSource objects, if any
+        :param src_num: Identifier from the OBSMLI file. Used for saving the lightcurve. Not linked to the archival catalog
         """
         self.id = id
+        self.src_num = src_num
         self.sources = {}
         self.sources_fluxes = []
         self.sources_error_bars = []
@@ -476,9 +478,11 @@ class MasterSource:
             fig, [ax1, ax2, ax3] = plt.subplots(1,3, figsize=(15,5))
 
         if self.simbad_type.strip() !='':
-            plt.suptitle(f'Simbad type: {self.simbad_type.strip()} \nShort-term Var: {self.has_short_term_var}',horizontalalignment="center")
+            plt.suptitle(f'Simbad type: {self.simbad_type.strip()} \nShort-term Variability: {self.has_short_term_var} '
+                         f'\nLong-term Variability: {np.round(self.var_ratio,1)}',horizontalalignment="center")
         else:
-            plt.suptitle(f'Not in Simbad \nShort-term Var: {self.has_short_term_var}',horizontalalignment="center")
+            plt.suptitle(f'Not in Simbad \nShort-term Variability: {self.has_short_term_var} '
+                         f'\nLong-term Variability: {np.round(self.var_ratio,1)}',horizontalalignment="center")
 
         if len(self.xmm_ul)!= 0:
             ax1.errorbar(self.xmm_ul_dates, self.xmm_ul, yerr=0.2 * np.array(self.xmm_ul), uplims=True, fmt='none', c=colors["XMM"], label="XMM non-det.")
@@ -694,10 +698,11 @@ class MasterSource:
         hardness_err_track = [np.array(hardness_err_track[0])[correct_indices], np.array(hardness_err_track[1])[correct_indices]]
         luminosity_err_track = [np.array(luminosity_err_track[0])[correct_indices], np.array(luminosity_err_track[1])[correct_indices]]
         catalogs_track = np.array(catalogs_track)[correct_indices]
-  
-        ax3.errorbar(hardness_track,luminosity_track,xerr=hardness_err_track,yerr=luminosity_err_track, alpha=0.2, linestyle="--")
-        for cat in catalogs:
-            ax3.scatter(hardness_track[catalogs_track==cat], luminosity_track[catalogs_track==cat], c=ax3.lines[-1].get_color(),marker=hr_track_markers[cat], s=50, label=cat, edgecolors="gray")
+
+        if len(correct_indices)>0:
+            ax3.errorbar(hardness_track,luminosity_track,xerr=hardness_err_track,yerr=luminosity_err_track, alpha=0.2, linestyle="--")
+            for cat in catalogs:
+                ax3.scatter(hardness_track[catalogs_track==cat], luminosity_track[catalogs_track==cat], c=ax3.lines[-1].get_color(),marker=hr_track_markers[cat], s=50, label=cat, edgecolors="gray")
 
         #ax1.tick_params(axis='x', rotation=45)
         ax1.set_title("Long-term lightcurve (0.2-12 keV)")
@@ -739,9 +744,11 @@ class MasterSource:
         plt.tight_layout()
         if obsid not in os.listdir(os.path.join(path_to_master_sources,'AlertsLightcurves')):
             os.mkdir(os.path.join(path_to_master_sources,'AlertsLightcurves',obsid))
-        lc_path = os.path.join(path_to_master_sources,'AlertsLightcurves',obsid,str(self.id)+'.pdf')
+        lc_path = os.path.join(path_to_master_sources,'AlertsLightcurves',obsid,obsid+'_'+str(self.src_num)+'.pdf'))
         print(f"saving LC {lc_path}")
         plt.savefig(lc_path)
+
+
 
 def load_source_on_position(cat, ra_target, dec_target):
     """
@@ -851,7 +858,7 @@ def load_source_on_name(cat, given_name, ra_target, dec_target):
     :return: Dictionary, with the name of the source as a key and the Source object as a value
     """
     #print(f"Loading {cat}...")
-    cmd = f"{stilts_cmd} tpipe {os.path.join(path_to_catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<1\"' \
+    cmd = f"stilts tpipe {os.path.join(path_to_catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<1\"' \
     out={os.path.join(path_to_catalogs,str(cat)+'_MatchOnSource.fits')}"
     cmd = shlex.split(cmd)
     subprocess.run(cmd)
