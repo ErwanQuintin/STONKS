@@ -744,7 +744,7 @@ class MasterSource:
         plt.tight_layout()
         if obsid not in os.listdir(os.path.join(path_to_master_sources,'AlertsLightcurves')):
             os.mkdir(os.path.join(path_to_master_sources,'AlertsLightcurves',obsid))
-        lc_path = os.path.join(path_to_master_sources,'AlertsLightcurves',obsid,obsid+'_'+str(self.src_num)+'.pdf'))
+        lc_path = os.path.join(path_to_master_sources,'AlertsLightcurves',obsid,obsid+'_'+str(self.src_num)+'.pdf')
         print(f"saving LC {lc_path}")
         plt.savefig(lc_path)
 
