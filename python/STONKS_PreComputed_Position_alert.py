@@ -46,12 +46,12 @@ def load_master_sources_positions(obsid, ra_target, dec_target):
     list_precomputed_obsids = os.listdir(os.path.join(path_to_master_sources,'PreComputedObsidMatches'))
     list_precomputed_obsids=[elt.split(".")[0] for elt in list_precomputed_obsids]
     if str(obsid) not in list_precomputed_obsids:
-        cmd = f"stilts tpipe {os.path.join(path_to_master_sources,'Master_source_HistoricalExtremes.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
+        cmd = f"{stilt_cmd} tpipe {os.path.join(path_to_master_sources,'Master_source_HistoricalExtremes.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
         out={os.path.join(path_to_master_sources,'PreComputedObsidMatches',str(obsid)+'.fits')}"
         cmd = shlex.split(cmd)
         subprocess.run(cmd)
 
-        cmd = f"stilts tpipe {os.path.join(path_to_master_sources,'Master_source_XMM_UpperLimits.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
+        cmd = f"{stilt_cmd} tpipe {os.path.join(path_to_master_sources,'Master_source_XMM_UpperLimits.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
                 out={os.path.join(path_to_master_sources,'PreComputedObsidMatches','UpperLimits_'+str(obsid)+'.fits')}"
         cmd = shlex.split(cmd)
         subprocess.run(cmd)
@@ -257,8 +257,10 @@ def testing_functions_NGC7793():
     band_fluxerr = [[[3e-13]*5],[[3e-13]*5]]
     date = Time(2022.0, format="decimalyear").mjd
 
-
-    raw_data = fits.open(f"{path_to_master_sources}Master_source_TestPipeline_NGC7793.fits", memmap=True)
+    src_list_path = os.path.join(path_to_master_sources, "Master_source_TestPipeline_NGC7793.fits")
+    src_list_path = os.path.join(path_to_master_sources, "P0804670301EPX000OBSMLI0000.FIT")
+    print(f"Loading EPIC source list {src_list_path}")
+    raw_data = fits.open(src_list_path, memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
 
@@ -291,7 +293,7 @@ def testing_functions_NGC7793():
     plt.xscale("log")
     for ms in tab_alerts:
         ms.save_lightcurve(obsid="NGC7793")
-testing_functions_NGC7793()
+#testing_functions_NGC7793()
 
 ra=0 #in Degrees
 dec=0 #in Degrees

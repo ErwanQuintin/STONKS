@@ -35,12 +35,13 @@ import os
 style="bmh"
 cmap_to_use="turbo"
 
-path_to_catalogs = "Data/Catalogs/FullData/"
-path_to_master_sources = "Data/MasterSource/"
+basedir = os.path.join(os.path.dirname(__file__), "..")
+path_to_catalogs = os.path.join(basedir, "Data/Catalogs/FullData/")
+path_to_master_sources =  os.path.join(basedir, "Data/MasterSource/")
+
+stilts_cmd = os.path.join(basedir, "stilts/stilts")
 #path_to_catalogs = "/home/erwan/Documents/PhD/LongTermVariability/LongTermVariability_Python/NewMatchMethod/CleanCatalogs/Catalogs/FullData/"
 #path_to_master_sources = "/home/erwan/Documents/PhD/LongTermVariability/LongTermVariability_Python/NewMatchMethod/CleanCatalogs/MasterSource/"
-
-
 
 #Starting from here, we define all the relevant column names or catalog properties that will be used later on.
 #If you're not interested in a catalog for whatever reason, you can remove it. They need to stay in the overall same order.
@@ -738,9 +739,9 @@ class MasterSource:
         plt.tight_layout()
         if obsid not in os.listdir(os.path.join(path_to_master_sources,'AlertsLightcurves')):
             os.mkdir(os.path.join(path_to_master_sources,'AlertsLightcurves',obsid))
-        plt.savefig(os.path.join(path_to_master_sources,'AlertsLightcurves',obsid,str(self.id)+'.pdf'))
-
-
+        lc_path = os.path.join(path_to_master_sources,'AlertsLightcurves',obsid,str(self.id)+'.pdf')
+        print(f"saving LC {lc_path}")
+        plt.savefig(lc_path)
 
 def load_source_on_position(cat, ra_target, dec_target):
     """
@@ -850,7 +851,7 @@ def load_source_on_name(cat, given_name, ra_target, dec_target):
     :return: Dictionary, with the name of the source as a key and the Source object as a value
     """
     #print(f"Loading {cat}...")
-    cmd = f"stilts tpipe {os.path.join(path_to_catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<1\"' \
+    cmd = f"{stilts_cmd} tpipe {os.path.join(path_to_catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<1\"' \
     out={os.path.join(path_to_catalogs,str(cat)+'_MatchOnSource.fits')}"
     cmd = shlex.split(cmd)
     subprocess.run(cmd)
