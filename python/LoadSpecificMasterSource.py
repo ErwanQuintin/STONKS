@@ -758,7 +758,7 @@ def load_source_on_position(cat, ra_target, dec_target):
     :return: Dictionary, with the name of the source as a key and the Source object as a value
     """
     #print(f"Loading {cat}...")
-    cmd = f"stilts tpipe {os.path.join(path_to_catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<20\"' \
+    cmd = f"{stilts_cmd} tpipe {os.path.join(path_to_catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<20\"' \
     out={os.path.join(path_to_catalogs, str(cat)+'_MatchOnSource.fits')}"
     cmd = shlex.split(cmd)
     subprocess.run(cmd)
@@ -858,7 +858,7 @@ def load_source_on_name(cat, given_name, ra_target, dec_target):
     :return: Dictionary, with the name of the source as a key and the Source object as a value
     """
     #print(f"Loading {cat}...")
-    cmd = f"stilts tpipe {os.path.join(path_to_catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<1\"' \
+    cmd = f"{stilts_cmd} tpipe {os.path.join(path_to_catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<1\"' \
     out={os.path.join(path_to_catalogs,str(cat)+'_MatchOnSource.fits')}"
     cmd = shlex.split(cmd)
     subprocess.run(cmd)
