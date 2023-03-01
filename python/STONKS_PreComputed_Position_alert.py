@@ -188,7 +188,7 @@ def compute_upper_limit(ra, dec, flux):
         slew_ul_dates = Time(tab_slew_upper_limits['start_date'],format="isot").mjd
     return xmm_ul, xmm_ul_dates, slew_ul, slew_ul_dates
 
-def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date, src_num, var_flag, ul=True):
+def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date, var_flag, ul=True):
     """
     Sends out alerts in the case of a transient object
     :param obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date, src_num, var_flag:
@@ -218,13 +218,13 @@ def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_
             new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                            date)
             old_ms = list(load_specific_master_sources(tab_ms_id[index_impacted_master_sources[0]],obsid, ra_target, dec_target).values())[0]
-            new_ms = MasterSource(old_ms.id,  list(old_ms.sources.values())+[new_source], old_ms.ra, old_ms.dec, old_ms.pos_err,[], src_num)
+            new_ms = MasterSource(old_ms.id,  list(old_ms.sources.values())+[new_source], old_ms.ra, old_ms.dec, old_ms.pos_err,[])
             new_ms.xmm_ul, new_ms.xmm_ul_dates = old_ms.xmm_ul,old_ms.xmm_ul_dates
             new_ms.slew_ul, new_ms.slew_ul_dates = old_ms.slew_ul,old_ms.slew_ul_dates
             new_ms.has_short_term_var= (old_ms.has_short_term_var or var_flag)
             new_ms.simbad_type=old_ms.simbad_type[0]
             tab_alerts.append(new_ms)
-    else:
+    elif flag_known_ms!=-1: #We require the archival matching to not be ambiguous. If it was ambiguous, bad idea to compute the UpperLimits
         #In the future: match Simbad here for the new sources only
         if ul:
             xmm_ul, xmm_ul_dates, slew_ul, slew_ul_dates = compute_upper_limit(ra_target, dec_target, flux)
@@ -232,20 +232,22 @@ def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_
                 if (np.nanmin(xmm_ul+slew_ul) < (flux-flux_err)/5) or var_flag:
                     new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                                    date)
-                    new_ms = MasterSource(- 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [], src_num)
+                    new_ms = MasterSource(- 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
                     new_ms.has_short_term_var = var_flag
                     new_ms.xmm_ul = xmm_ul
                     new_ms.xmm_ul_dates = xmm_ul_dates
                     new_ms.slew_ul = slew_ul
                     new_ms.slew_ul_dates = slew_ul_dates
                     new_ms.var_ratio = (flux-flux_err)/np.nanmin(xmm_ul+slew_ul)
+                    new_ms.simbad_type = "Not Checked"
                     tab_alerts.append(new_ms)
 
         elif var_flag:
             new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                            date)
-            new_ms = MasterSource(- 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [], src_num)
+            new_ms = MasterSource(- 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
             new_ms.has_short_term_var = var_flag
+            new_ms.simbad_type = "Not Checked"
             tab_alerts.append(new_ms)
 
     return tab_alerts
@@ -255,6 +257,7 @@ def testing_functions_NGC7793():
     """
     Testing function, meant to work on a sub-sample of the catalog corresponding to an observation of NGC 7793 containing
     several variables objects
+    Might not work anymore because of the dictionary metadata update.
     """
     #Initial input to get the Ra, Dec, Flux, FluxErr
     pos_err = 1#input("1sigma PosErr of the source (in arcsec)?")
@@ -279,17 +282,17 @@ def testing_functions_NGC7793():
     tab_alerts=[]
     start = time.time()
     tab_alerts += transient_alert(1, 359.38, -32.584, 1, 2e-12, 1e-13, band_fluxes,
-                                  band_fluxerr, date, src_num=-1, var_flag=True)
+                                  band_fluxerr, date, var_flag=True)
     end = time.time()
 
     tab_times.append(end - start)
     pbar=tqdm(total=len(sources_raw))
-    for ra, dec, flux, flux_err, band_flux, band_fluxerr, date,src_num in \
+    for ra, dec, flux, flux_err, band_flux, band_fluxerr, date in \
             zip(sources_raw["MS_RA"],sources_raw["MS_DEC"], sources_raw["EP_8_FLUX"],\
-                    sources_raw["EP_8_FLUX_ERR"],tab_band_fluxes, tab_band_fluxerr,[56061.15969907407]*len(sources_raw), range(len(sources_raw))):
+                    sources_raw["EP_8_FLUX_ERR"],tab_band_fluxes, tab_band_fluxerr,[56061.15969907407]*len(sources_raw)):
         start = time.time()
         tab_alerts += transient_alert(1, ra, dec, 5, flux, flux_err, band_flux,
-                                     band_fluxerr, date, src_num, var_flag=False)
+                                     band_fluxerr, date, var_flag=False)
         end = time.time()
         tab_times.append(end - start)
         pbar.update(1)
@@ -298,7 +301,7 @@ def testing_functions_NGC7793():
     plt.hist(tab_times, bins=np.geomspace(1e-3,1e2,20))
     plt.xscale("log")
     for ms in tab_alerts:
-        ms.save_lightcurve(obsid="NGC7793")
+        ms.save_lightcurve({"ObsID":obsid})
 #testing_functions_NGC7793()
 
 

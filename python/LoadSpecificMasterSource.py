@@ -320,7 +320,7 @@ class MasterSource:
 
     A MasterSource only has one method, plot_lightcurve(), which produces a multi-panel plot of all relevant information
     """
-    def __init__(self, id, tab_sources, ra, dec, poserr, tab_optical_sources,src_num=-1):
+    def __init__(self, id, tab_sources, ra, dec, poserr, tab_optical_sources):
         """
         Initialisation function, used to build a MasterSource object. We also compile the multi-instrument properties at
         this stage (variabilities, HR variabilities,...)
@@ -330,10 +330,8 @@ class MasterSource:
         :param dec: Dec of the MasterSource computed as weighted average of the constituting Source objects
         :param poserr: 1 sigma Position Error of the MasterSource computed as weighted average of the constituting Source objects
         :param tab_optical_sources: Table containing the OpticalSource objects, if any
-        :param src_num: Identifier from the OBSMLI file. Used for saving the lightcurve. Not linked to the archival catalog
         """
         self.id = id
-        self.src_num = src_num
         self.sources = {}
         self.sources_fluxes = []
         self.sources_error_bars = []
@@ -462,7 +460,7 @@ class MasterSource:
 
         self.simbad_type=''
 
-    def save_lightcurve(self,obsid):
+    def save_lightcurve(self,dict_new_det_info):
         """
         Produces a multi-panel plot with most of the useful multi-instrument information about the source, saving it in
          a PDF file. From left to right and top to bottom:
@@ -475,14 +473,8 @@ class MasterSource:
         if self.optical_sources!={}:
             fig, [[ax1, ax2, ax3], [ax4, ax5, ax6]] = plt.subplots(2, 3, figsize=(15,10))
         else:
-            fig, [ax1, ax2, ax3] = plt.subplots(1,3, figsize=(15,5))
+            fig, [[ax1, ax2], [ax3,ax4]] = plt.subplots(2,2, figsize=(10,10))
 
-        if self.simbad_type.strip() !='':
-            plt.suptitle(f'Simbad type: {self.simbad_type.strip()} \nShort-term Variability: {self.has_short_term_var} '
-                         f'\nLong-term Variability: {np.round(self.var_ratio,1)}',horizontalalignment="center")
-        else:
-            plt.suptitle(f'Not in Simbad \nShort-term Variability: {self.has_short_term_var} '
-                         f'\nLong-term Variability: {np.round(self.var_ratio,1)}',horizontalalignment="center")
 
         if len(self.xmm_ul)!= 0:
             ax1.errorbar(self.xmm_ul_dates, self.xmm_ul, yerr=0.2 * np.array(self.xmm_ul), uplims=True, fmt='none', c=colors["XMM"], label="XMM non-det.")
@@ -554,6 +546,8 @@ class MasterSource:
                     ax4.errorbar([], [], fmt="o", c=optical_colors[band], label=band, markeredgecolor='gray')
 
             #SED plot part
+            #Next part is commented as it is linked to OM & UVOT data and SED plotting, not used for STONKS
+            """
             all_freq = []
             all_nuFnu = []
             all_freq_width = []
@@ -684,7 +678,7 @@ class MasterSource:
                 if self.alpha_band_x_Fnu[band] != []:
                     ax6.errorbar(self.alpha_band_x_timesteps[band], self.alpha_band_x_Fnu[band], yerr=np.transpose(self.alpha_band_x_Fnu_error[band]), fmt="o", markeredgecolor='gray', c=optical_colors[band],label=band)
 
-
+            """
         order = np.argsort(time_track)
         hardness_track=np.array(hardness_track)[order]
         luminosity_track = np.array(luminosity_track)[order]
@@ -740,12 +734,32 @@ class MasterSource:
                 secax.set_ylabel(r'Luminosity ($erg.s^{-1})$')
                 secax = ax5.secondary_yaxis('right', functions=second_axis_func)
                 secax.set_ylabel(r'$\nu$ $L_{\nu}$ (Hz.erg.s$^{-1}$.Hz$^{-1}$)')
+
+
+        #Adding the metadata
+        obsid= dict_new_det_info["ObsID"]
+        scr_num = dict_new_det_info["SRCNUM"]
+        string_to_plot = ''
+        for key in ['ObsID','Date Obs', 'Target Name']:
+            string_to_plot+= str(key)+" : "+str(dict_new_det_info[key])+' \n'
+        string_to_plot+=' \n \n'
+        for key in ['SRCNUM','Off-axis Angles', 'Source RA', 'Source Dec', 'Position Error']:
+            string_to_plot+= str(key)+" : "+str(dict_new_det_info[key])+' \n'
+        string_to_plot+=' \n \n'
+        if self.simbad_type.strip() !='':
+            string_to_plot+=f'Simbad type: {self.simbad_type.strip()} \n'
+        else:
+            string_to_plot +="Not in Simbad \n"
+        string_to_plot += f"Short-term Variability: {self.has_short_term_var} \nLong-term Variability: {np.round(self.var_ratio,1)}"
+
+        ax4.axis('off')
+        ax4.text(x=0,y=0,s=string_to_plot)
         plt.draw()
         plt.tight_layout()
         if obsid not in os.listdir(os.path.join(path_to_master_sources,'AlertsLightcurves')):
             os.mkdir(os.path.join(path_to_master_sources,'AlertsLightcurves',obsid))
-        lc_path = os.path.join(path_to_master_sources,'AlertsLightcurves',obsid,obsid+'_'+str(self.src_num)+'.pdf')
-        print(f"saving LC {lc_path}")
+        lc_path = os.path.join(path_to_master_sources,'AlertsLightcurves',obsid,obsid+'_'+scr_num+'.pdf')
+        print(f"Saving Lightcurve {lc_path}")
         plt.savefig(lc_path)
 
 

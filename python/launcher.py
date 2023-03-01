@@ -33,12 +33,20 @@ def testing_functions_0804670301():
     flux_err_level = 0.5e-14#input("Flux Error Level of the source ?")
     band_fluxes = [[1e-12]*5]
     band_fluxerr = [[[3e-13]*5],[[3e-13]*5]]
-    date = Time(2022.0, format="decimalyear").mjd
 
-    src_list_path = os.path.join(path_to_master_sources, "Master_source_TestPipeline_NGC7793.fits")
     src_list_path = os.path.join(path_to_master_sources, "P0804670301EPX000OBSMLI0000.FIT")
     print(f"Loading EPIC source list {src_list_path}")
     raw_data = fits.open(src_list_path, memmap=True)
+
+    #Building Observation information using OBSMLI header
+    dict_observation_metadata = {}
+    obs_information = raw_data[0].header
+    dict_observation_metadata["ObsID"] = str(obs_information['OBS_ID'])
+    dict_observation_metadata["Date Obs"] = obs_information['DATE-OBS']
+    dict_observation_metadata["Target Name"] = obs_information['OBJECT']
+    date = Time(dict_observation_metadata["Date Obs"], format="isot").mjd
+
+
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
 
@@ -48,20 +56,30 @@ def testing_functions_0804670301():
     for line in sources_raw["ERR_EP_1_FLUX","ERR_EP_2_FLUX","ERR_EP_3_FLUX","ERR_EP_4_FLUX","ERR_EP_5_FLUX"]:
         tab_band_fluxerr.append([[list(line)], [list(line)]])
 
-    tab_times=[]
     tab_alerts=[]
-    start = time.time()
-    tab_alerts += transient_alert(1, 359.38, -32.584, 1, 2e-12, 1e-13, band_fluxes,
-                                  band_fluxerr, date,-1, var_flag=True)
-    end = time.time()
-    tab_times.append(end - start)
+    tab_dic_infos = []
     pbar=tqdm(total=len(sources_raw))
-    for ra, dec, pos_err, flux, flux_err, band_flux, band_fluxerr, date, src_num in \
+    for ra, dec, pos_err, flux, flux_err, band_flux, band_fluxerr, src_num, pn_offax, m1_offax, m2_offax in \
             zip(sources_raw["RA"],sources_raw["DEC"],sources_raw["RADEC_ERR"], sources_raw["EP_TOT_FLUX"],\
-                    sources_raw["ERR_EP_TOT_FLUX"],tab_band_fluxes, tab_band_fluxerr,[56061.15969907407]*len(sources_raw), sources_raw["SRC_NUM"]):
+                    sources_raw["ERR_EP_TOT_FLUX"],tab_band_fluxes, tab_band_fluxerr, sources_raw["SRC_NUM"],
+                sources_raw["PN_OFFAX"],sources_raw["M1_OFFAX"],sources_raw["M2_OFFAX"]):
         start = time.time()
-        tab_alerts += transient_alert(1, ra, dec, pos_err, flux, flux_err, band_flux,
-                                     band_fluxerr, date,src_num, var_flag=False)
+        dict_detection_info={}
+        dict_detection_info["ObsID"]=dict_observation_metadata["ObsID"]
+        dict_detection_info["Date Obs"]=dict_observation_metadata["Date Obs"]
+        dict_detection_info["Target Name"]=dict_observation_metadata["Target Name"]
+        dict_detection_info['SRCNUM'] = str(src_num)
+        dict_detection_info['Off-axis Angles'] = f'PN: {pn_offax:.1f}", M1: {m1_offax:.1f}", M2: {m2_offax:.1f}"'
+        dict_detection_info['Source RA']=np.round(ra, 4)
+        dict_detection_info['Source Dec']=np.round(dec, 4)
+        dict_detection_info['Position Error']=f'{pos_err:.2f}"'
+
+        result_alert = transient_alert(1, ra, dec, pos_err, flux, flux_err, band_flux,
+                                     band_fluxerr, date, var_flag=False)
+        if result_alert!=[]: #If there is a transient alert
+            tab_alerts += result_alert
+            tab_dic_infos.append(dict_detection_info)
+
         end = time.time()
         tab_times.append(end - start)
         pbar.update(1)
@@ -69,7 +87,7 @@ def testing_functions_0804670301():
 
     plt.hist(tab_times, bins=np.geomspace(1e-3,1e2,20))
     plt.xscale("log")
-    for ms in tab_alerts:
-        ms.save_lightcurve(obsid="0804670301")
+    for ms, dict_det_info in zip(tab_alerts,tab_dic_infos):
+        ms.save_lightcurve(dict_det_info)
 if __name__ == '__main__':
     testing_functions_0804670301()
