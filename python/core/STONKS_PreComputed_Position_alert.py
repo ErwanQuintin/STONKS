@@ -26,12 +26,13 @@ from astropy.table import Table
 from astropy.time import Time
 from tqdm import tqdm
 from astropy.constants import c
-from core.LoadSpecificMasterSource import *
+from core.LoadSpecificMasterSource import MasterSource, Source, load_specific_master_sources
 from core import api as rpx
 from astropy.coordinates import SkyCoord, search_around_sky, Angle
 import time
 import shlex
 import subprocess
+from constants import PATHTO
 
 
 def load_master_sources_positions(obsid, ra_target, dec_target):
@@ -43,20 +44,20 @@ def load_master_sources_positions(obsid, ra_target, dec_target):
     :param dec_target: Dec of the source
     :return: Identification, positional and flux information of the MasterSources in the 30' radius.
     """
-    list_precomputed_obsids = os.listdir(os.path.join(path_to_master_sources,'PreComputedObsidMatches'))
+    list_precomputed_obsids = os.listdir(os.path.join(PATHTO.master_sources,'PreComputedObsidMatches'))
     list_precomputed_obsids=[elt.split(".")[0] for elt in list_precomputed_obsids]
     if str(obsid) not in list_precomputed_obsids:
-        cmd = f"stilts tpipe {os.path.join(path_to_master_sources,'Master_source_HistoricalExtremes.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
-        out={os.path.join(path_to_master_sources,'PreComputedObsidMatches',str(obsid)+'.fits')}"
+        cmd = f"stilts tpipe {os.path.join(PATHTO.master_sources,'Master_source_HistoricalExtremes.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
+        out={os.path.join(PATHTO.master_sources,'PreComputedObsidMatches',str(obsid)+'.fits')}"
         cmd = shlex.split(cmd)
         subprocess.run(cmd)
 
-        cmd = f"stilts tpipe {os.path.join(path_to_master_sources,'Master_source_XMM_UpperLimits.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
-                out={os.path.join(path_to_master_sources,'PreComputedObsidMatches','UpperLimits_'+str(obsid)+'.fits')}"
+        cmd = f"stilts tpipe {os.path.join(PATHTO.master_sources,'Master_source_XMM_UpperLimits.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
+                out={os.path.join(PATHTO.master_sources,'PreComputedObsidMatches','UpperLimits_'+str(obsid)+'.fits')}"
         cmd = shlex.split(cmd)
         subprocess.run(cmd)
 
-    raw_data = fits.open(f"{os.path.join(path_to_master_sources,'PreComputedObsidMatches',str(obsid)+'.fits')}", memmap=True)
+    raw_data = fits.open(f"{os.path.join(PATHTO.master_sources,'PreComputedObsidMatches',str(obsid)+'.fits')}", memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     tab_positions = SkyCoord(sources_raw["MS_RA"],sources_raw["MS_DEC"], unit='deg')
@@ -268,7 +269,7 @@ def testing_functions_NGC7793():
     date = Time(2022.0, format="decimalyear").mjd
 
 
-    raw_data = fits.open(f"{path_to_master_sources}Master_source_TestPipeline_NGC7793.fits", memmap=True)
+    raw_data = fits.open(f"{PATHTO.master_sources}Master_source_TestPipeline_NGC7793.fits", memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
 

@@ -9,7 +9,7 @@ from constants import PATHTO
 
 class SessionUtils(object):
     '''
-    classdocs
+    Some utilities helping to manage the session data
     '''
     @staticmethod
     def remove_session_directory(session_name):
