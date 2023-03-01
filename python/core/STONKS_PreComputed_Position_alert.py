@@ -26,8 +26,8 @@ from astropy.table import Table
 from astropy.time import Time
 from tqdm import tqdm
 from astropy.constants import c
-from LoadSpecificMasterSource import *
-import api as rpx
+from core.LoadSpecificMasterSource import *
+from core import api as rpx
 from astropy.coordinates import SkyCoord, search_around_sky, Angle
 import time
 import shlex

@@ -25,21 +25,16 @@ from astropy.table import Table
 from astropy.time import Time
 from tqdm import tqdm
 from astropy.constants import c
-from scipy.stats import pearsonr
-import webbrowser
 import shlex
 import subprocess
 import os
-
+from dict_utils import DictUtils
+from constants import PATHTO
 
 style="bmh"
 cmap_to_use="turbo"
 
-basedir = os.path.join(os.path.dirname(__file__), "..")
-path_to_catalogs = os.path.join(basedir, "Data/Catalogs/FullData/")
-path_to_master_sources =  os.path.join(basedir, "Data/MasterSource/")
 
-stilts_cmd = os.path.join(basedir, "stilts/stilts")
 #path_to_catalogs = "/home/erwan/Documents/PhD/LongTermVariability/LongTermVariability_Python/NewMatchMethod/CleanCatalogs/Catalogs/FullData/"
 #path_to_master_sources = "/home/erwan/Documents/PhD/LongTermVariability/LongTermVariability_Python/NewMatchMethod/CleanCatalogs/MasterSource/"
 
@@ -737,14 +732,14 @@ class MasterSource:
 
 
         #Adding the metadata
-        obsid= dict_new_det_info["ObsID"]
-        scr_num = dict_new_det_info["SRCNUM"]
+        obsid= DictUtils.get_value_by_key(dict_new_det_info, "ObsID")
+        scr_num =  DictUtils.get_value_by_key(dict_new_det_info, "SRCNUM")
         string_to_plot = ''
         for key in ['ObsID','Date Obs', 'Target Name']:
-            string_to_plot+= str(key)+" : "+str(dict_new_det_info[key])+' \n'
+            string_to_plot += str(key)+" : "+str(DictUtils.get_value_by_key(dict_new_det_info, key))+' \n'
         string_to_plot+=' \n \n'
         for key in ['SRCNUM','Off-axis Angles', 'Source RA', 'Source Dec', 'Position Error']:
-            string_to_plot+= str(key)+" : "+str(dict_new_det_info[key])+' \n'
+            string_to_plot+= str(key)+" : "+str(DictUtils.get_value_by_key(dict_new_det_info, key))+' \n'
         string_to_plot+=' \n \n'
         if self.simbad_type.strip() !='':
             string_to_plot+=f'Simbad type: {self.simbad_type.strip()} \n'
@@ -756,9 +751,16 @@ class MasterSource:
         ax4.text(x=0,y=0,s=string_to_plot)
         plt.draw()
         plt.tight_layout()
-        if obsid not in os.listdir(os.path.join(path_to_master_sources,'AlertsLightcurves')):
-            os.mkdir(os.path.join(path_to_master_sources,'AlertsLightcurves',obsid))
-        lc_path = os.path.join(path_to_master_sources,'AlertsLightcurves',obsid,obsid+'_'+scr_num+'.pdf')
+        if obsid not in os.listdir(os.path.join(PATHTO.master_sources,'AlertsLightcurves')):
+            os.mkdir(os.path.join(PATHTO.master_sources,'AlertsLightcurves',obsid))
+        if scr_num.isdigit() is True:
+            str_num = "{:03x}".format(int(scr_num))
+        else:
+            str_num = "FFF"
+        filename = f"P{obsid}CAX000VALERT0{str_num}.PDF"
+        lc_path = os.path.join(PATHTO.master_sources,
+                               'AlertsLightcurves',
+                               obsid,filename)
         print(f"Saving Lightcurve {lc_path}")
         plt.savefig(lc_path)
 
@@ -772,11 +774,11 @@ def load_source_on_position(cat, ra_target, dec_target):
     :return: Dictionary, with the name of the source as a key and the Source object as a value
     """
     #print(f"Loading {cat}...")
-    cmd = f"{stilts_cmd} tpipe {os.path.join(path_to_catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<20\"' \
-    out={os.path.join(path_to_catalogs, str(cat)+'_MatchOnSource.fits')}"
+    cmd = f"{PATHTO.stilts_cmd} tpipe {os.path.join(PATHTO.catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<20\"' \
+    out={os.path.join(PATHTO.catalogs, str(cat)+'_MatchOnSource.fits')}"
     cmd = shlex.split(cmd)
     subprocess.run(cmd)
-    raw_data = fits.open(os.path.join(path_to_catalogs,str(cat)+'_MatchOnSource.fits'), memmap=True)
+    raw_data = fits.open(os.path.join(PATHTO.catalogs,str(cat)+'_MatchOnSource.fits'), memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     sources_raw = sources_raw[np.argsort(sources_raw[src_names[cat]])]
@@ -859,7 +861,7 @@ def load_source_on_position(cat, ra_target, dec_target):
                     obsid = obsid[obsid < 1e10]
                 source = Source(cat, name[0].strip(), flux, flux_error, time, band_flux, band_fluxerr, obsid, swift_stacked_flux,swift_stacked_flux_err,swift_stacked_times, xmm_offaxis, short_term_var)
                 dic_sources[name[0].strip()] = source
-    cmd_cleanup=f"rm {path_to_catalogs}{cat}_MatchOnSource.fits"
+    cmd_cleanup=f"rm {PATHTO.catalogs}{cat}_MatchOnSource.fits"
     cmd_cleanup = shlex.split(cmd_cleanup)
     subprocess.run(cmd_cleanup)
     return dic_sources
@@ -872,11 +874,11 @@ def load_source_on_name(cat, given_name, ra_target, dec_target):
     :return: Dictionary, with the name of the source as a key and the Source object as a value
     """
     #print(f"Loading {cat}...")
-    cmd = f"{stilts_cmd} tpipe {os.path.join(path_to_catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<1\"' \
-    out={os.path.join(path_to_catalogs,str(cat)+'_MatchOnSource.fits')}"
+    cmd = f"{PATHTO.stilts_cmd} tpipe {os.path.join(PATHTO.catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<1\"' \
+    out={os.path.join(PATHTO.catalogs,str(cat)+'_MatchOnSource.fits')}"
     cmd = shlex.split(cmd)
     subprocess.run(cmd)
-    raw_data = fits.open(os.path.join(path_to_catalogs,str(cat)+'_MatchOnSource.fits'), memmap=True)
+    raw_data = fits.open(os.path.join(PATHTO.catalogs,str(cat)+'_MatchOnSource.fits'), memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     sources_raw = sources_raw[sources_raw[src_names[cat]]==given_name]
@@ -945,7 +947,7 @@ def load_source_on_name(cat, given_name, ra_target, dec_target):
                 obsids = obsids[obsids < 1e10]
             source = Source(cat, given_name, fluxes, flux_errors, timesteps, band_fluxes, band_fluxerr, obsids,
                                 swift_stacked_flux,swift_stacked_flux_err,swift_stacked_times, xmm_offaxes, short_term_var_flags)
-    cmd_cleanup=f"rm {path_to_catalogs}{cat}_MatchOnSource.fits"
+    cmd_cleanup=f"rm {PATHTO.catalogs}{cat}_MatchOnSource.fits"
     cmd_cleanup = shlex.split(cmd_cleanup)
     subprocess.run(cmd_cleanup)
     return source
@@ -956,7 +958,7 @@ def load_GLADE():
     :return: A dictionary, with the GLADE identifier as a key, and a Table containing Distance and Galaxy Stellar Mass as value
     """
     print(f"Loading GLADE+...")
-    raw_data = fits.open(os.path.join(path_to_catalogs,"GLADE.fits"), memmap=True)
+    raw_data = fits.open(os.path.join(PATHTO.catalogs,"GLADE.fits"), memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     glade_distances ={}
@@ -973,7 +975,7 @@ def load_specific_XMM_upperlimits(dic_master_sources, ms_id, obsid):
     :param dic_master_sources
     :return: Nothing; MasterSource objects are updated with the corresponding Upper Limits
     """
-    raw_data = fits.open(os.path.join(path_to_master_sources,'PreComputedObsidMatches','UpperLimits_'+str(obsid)+'.fits'), memmap=True)
+    raw_data = fits.open(os.path.join(PATHTO.master_sources,'PreComputedObsidMatches','UpperLimits_'+str(obsid)+'.fits'), memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     sources_raw = sources_raw[sources_raw["MS_ID"]==ms_id]
@@ -1009,7 +1011,7 @@ def load_Chandra_upperlimits(dic_master_sources):
     :return: Nothing; MasterSource objects are updated with the corresponding Upper Limits
     """
     print("Load Chandra upper limits...")
-    raw_data = fits.open(os.path.join(path_to_master_sources,"Chandra_UL.fits"), memmap=True)
+    raw_data = fits.open(os.path.join(PATHTO.master_sources,"Chandra_UL.fits"), memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     for line in tqdm(sources_raw):
@@ -1026,7 +1028,7 @@ def load_specific_master_sources(ms_id,obsid, ra_target, dec_target):
     archival catalog, to increase speed.
     :return: a Dictionary, containing the MasterSource as value and the identifier as key.
     """
-    raw_data = fits.open(os.path.join(path_to_master_sources,'PreComputedObsidMatches',str(obsid)+'.fits'), memmap=True)
+    raw_data = fits.open(os.path.join(PATHTO.master_sources,'PreComputedObsidMatches',str(obsid)+'.fits'), memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     line = sources_raw[sources_raw["MS_ID"]==ms_id]
