@@ -18,6 +18,7 @@ Author: Erwan Quintin, erwan.quintin@irap.omp.eu
 
 import numpy as np
 import matplotlib
+from session_utils import SessionUtils
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from astropy.io import fits
@@ -758,9 +759,8 @@ class MasterSource:
         else:
             str_num = "FFF"
         filename = f"P{obsid}CAX000VALERT0{str_num}.PDF"
-        lc_path = os.path.join(PATHTO.master_sources,
-                               'AlertsLightcurves',
-                               obsid,filename)
+        lc_path = os.path.join(SessionUtils.get_session_path(obsid),
+                               filename)
         print(f"Saving Lightcurve {lc_path}")
         plt.savefig(lc_path)
 
