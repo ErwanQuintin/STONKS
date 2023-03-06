@@ -43,7 +43,8 @@ def process_one_observation(obsmli_path, queue):
     
         sources_raw = raw_data[1].data
         sources_raw = Table(sources_raw)
-        session_path = SessionUtils.get_session_path(dict_observation_metadata["ObsID"])
+        SessionUtils.remove_session_directory(dict_observation_metadata["ObsID"])
+        SessionUtils.get_session_path(dict_observation_metadata["ObsID"])
         tab_band_fluxes = [[list(line)] for line in sources_raw["EP_1_FLUX","EP_2_FLUX","EP_3_FLUX","EP_4_FLUX","EP_5_FLUX"]]
         tab_band_fluxerr = []
         nb_src = 0;
@@ -70,8 +71,6 @@ def process_one_observation(obsmli_path, queue):
             print (f"Processing source {src_num}")
             nb_alerts += process_one_source(param_holder, dict_observation_metadata) 
             nb_src += 1
-            if nb_alerts  > 0:
-                break
         if queue is not None:
             queue.put({"status": "succeed",
                        "session_name": dict_observation_metadata["ObsID"],

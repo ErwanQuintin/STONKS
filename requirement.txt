@@ -4,3 +4,6 @@ scipy
 astropy
 astropy_healpix
 pandas
+flask_restx
+gunicorn
+requests
