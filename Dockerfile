@@ -51,3 +51,4 @@ RUN mkdir Data
 
 # Run the production server
 CMD gunicorn --bind 0.0.0.0:5000 rest_api.wsgi_api:application
+
