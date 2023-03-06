@@ -2,7 +2,7 @@
 # STONK server image
 #
 # ABSOLUTEPATHTODATA/Data subfolders must all have a write permission
-# docker run -p 5000:5000 --mount source=ABSOLUTEPATHTODATA/Data,target=/home/svom/Data,type=bind -it stonks
+# docker run -p 5000:5000 --mount source=ABSOLUTEPATHTODATA/Data,target=/home/stonks/Data,type=bind -it stonks
 #
 #
 FROM python:3.8-slim
@@ -17,22 +17,22 @@ RUN apt-get install -y libtk-img-dev
 RUN rm -rf /var/lib/apt/lists/* 
 
 # User setup
-ARG svom_gid=998
-ARG svom_uid=208
-ENV USR svom
-ENV SVOM_GID $svom_gid
-ENV SVOM_UID $svom_uid
-RUN addgroup -gid $SVOM_GID $USR
-RUN adduser --system --uid $SVOM_UID --gid $SVOM_GID $USR
-# Now logon as svom user
+ARG stonks_gid=998
+ARG stonks_uid=208
+ENV USR stonks
+ENV stonks_GID $stonks_gid
+ENV stonks_UID $stonks_uid
+RUN addgroup -gid $stonks_GID $USR
+RUN adduser --system --uid $stonks_UID --gid $stonks_GID $USR
+# Now logon as stonks user
 USER $USR:$USR
 WORKDIR /home/$USR
 
 # get the list of required Python packages
 ADD ./requirement.txt .
 
-ENV PYTHONPATH /home/svom/python:$PYTHONPATH
-ENV PATH /home/svom/.local/bin/:$PATH
+ENV PYTHONPATH /home/stonks/python:$PYTHONPATH
+ENV PATH /home/stonks/.local/bin/:$PATH
 
 # install Python packages
 RUN  \
