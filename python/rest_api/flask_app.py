@@ -5,7 +5,7 @@ Created on 1 mars 2023
 '''
 import os
 import json
-from flask import Flask, request, send_from_directory
+from flask import Flask, request, send_from_directory, send_file, jsonify
 from werkzeug.utils import secure_filename
 from multiprocessing import Process, Queue
 from constants import PATHTO
@@ -18,6 +18,7 @@ app = Flask(__name__)
 app.secret_key = "super secret key"
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024    # 1 Mb limit
 
+    
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -58,13 +59,24 @@ def upload_file():
                 return send_from_directory(directory, filename)  , 200      
 
             except Exception as exp:
-                result = {'status': 'ok',
+                result = {'status': 'failed',
                   'message': f"Something went wrong {str(exp)}"}
                 return result, 500
+       
        
         result = {'status': 'failed',
                   'message': f"Prohibited filename {file.filename}"}
         return result, 500
+
+@app.route("/doc")
+def doc():
+
+    return send_file(os.path.join(PATHTO.basedir, 'doc', 'STONKS_Documentation.pdf'))
+
+@app.route("/")
+def home():
+     
+    return send_file(os.path.join(PATHTO.basedir, 'doc', "index.html"))
 
 
 if __name__ == "__main__":

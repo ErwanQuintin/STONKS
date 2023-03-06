@@ -19,7 +19,7 @@ Author: Erwan Quintin, erwan.quintin@irap.omp.eu
 import os
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.table import Table
