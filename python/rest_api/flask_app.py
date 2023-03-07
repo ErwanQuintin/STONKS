@@ -17,13 +17,12 @@ ALLOWED_EXTENSIONS = ['fit', 'fits']
 app = Flask(__name__)
 app.secret_key = "super secret key"
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024    # 1 Mb limit
-
-    
+  
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/process-obs', methods=['POST'])
+@app.route('/stonks/process-obs', methods=['POST'])
 def upload_file():
     if request.method == 'POST':
 
@@ -70,12 +69,12 @@ def upload_file():
                   'message': f"Prohibited filename {file.filename}"}
         return result, 500
 
-@app.route("/doc")
+@app.route("/stonks//doc")
 def doc():
 
     return send_file(os.path.join(PATHTO.basedir, 'doc', 'STONKS_Documentation.pdf'))
 
-@app.route("/")
+@app.route("/stonks/")
 def home():
      
     return send_file(os.path.join(PATHTO.basedir, 'doc', "index.html"))
