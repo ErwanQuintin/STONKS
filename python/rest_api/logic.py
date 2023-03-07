@@ -3,13 +3,14 @@ Created on 28 févr. 2023
 
 @author: michel
 '''
+import traceback
 import numpy as np
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
 
-from core.STONKS_PreComputed_Position_alert import transient_alert, dec
-from session_utils import SessionUtils
+from core.STONKS_PreComputed_Position_alert import transient_alert
+from session import Session
 
 class ParamHolder:
     """
@@ -28,9 +29,10 @@ class ParamHolder:
         self.m1_offax = None
         self.m2_offax = None 
 
-def process_one_observation(obsmli_path, queue): 
+def process_one_observation(session, obsmli_path, queue): 
     print(f"Loading EPIC source list {obsmli_path}")
     try:
+        
         raw_data = fits.open(obsmli_path, memmap=True)
     
         #Building Observation information using OBSMLI header
@@ -40,11 +42,10 @@ def process_one_observation(obsmli_path, queue):
         dict_observation_metadata["DateObs"] = obs_information['DATE-OBS']
         dict_observation_metadata["TargetName"] = obs_information['OBJECT']
         dict_observation_metadata["MJD"] = Time(dict_observation_metadata["DateObs"], format="isot").mjd
-    
+
+        session.obsid = dict_observation_metadata["ObsID"]
         sources_raw = raw_data[1].data
         sources_raw = Table(sources_raw)
-        SessionUtils.remove_session_directory(dict_observation_metadata["ObsID"])
-        SessionUtils.get_session_path(dict_observation_metadata["ObsID"])
         tab_band_fluxes = [[list(line)] for line in sources_raw["EP_1_FLUX","EP_2_FLUX","EP_3_FLUX","EP_4_FLUX","EP_5_FLUX"]]
         tab_band_fluxerr = []
         nb_src = 0;
@@ -69,21 +70,22 @@ def process_one_observation(obsmli_path, queue):
             param_holder.m1_offax = m1_offax
             param_holder.m2_offax = m2_offax
             print (f"Processing source {src_num}")
-            nb_alerts += process_one_source(param_holder, dict_observation_metadata) 
+            nb_alerts += process_one_source(param_holder, dict_observation_metadata, session) 
             nb_src += 1
         if queue is not None:
             queue.put({"status": "succeed",
-                       "session_name": dict_observation_metadata["ObsID"],
+                       "obsid": dict_observation_metadata["ObsID"],
                        "nb_sources": str(nb_src),
                        "nb_alerts": str(nb_alerts),
                        })   
     except Exception as exp:
         print(exp)
+        traceback.print_exc()
         if queue is not None:
             queue.put({"status": "failed", "exception": f"{str(exp)}"})   
         
          
-def process_one_source(param_holder, observation_metadata):
+def process_one_source(param_holder, observation_metadata, session):
     tab_alerts=[]
     tab_dic_infos = []
     nb_alerts = 0
@@ -97,7 +99,8 @@ def process_one_source(param_holder, observation_metadata):
     dict_detection_info['Source Dec']=np.round(param_holder.dec, 4)
     dict_detection_info['Position Error']=f'{param_holder.pos_err:.2f}"'
 
-    result_alert = transient_alert(1,
+    result_alert = transient_alert(session,
+                                   1,
                                    param_holder.ra,
                                    param_holder.dec,
                                    param_holder.pos_err,
@@ -106,7 +109,8 @@ def process_one_source(param_holder, observation_metadata):
                                    param_holder.band_flux,
                                    param_holder.band_fluxerr,
                                    observation_metadata["MJD"],
-                                   var_flag=False)
+                                   var_flag=False,
+                                   )
     if result_alert!=[]: #If there is a transient alert
         tab_alerts += result_alert
         tab_dic_infos.append(dict_detection_info)

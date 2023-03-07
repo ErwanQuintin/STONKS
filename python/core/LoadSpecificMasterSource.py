@@ -18,7 +18,6 @@ Author: Erwan Quintin, erwan.quintin@irap.omp.eu
 
 import numpy as np
 import matplotlib
-from session_utils import SessionUtils
 #matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from astropy.io import fits
@@ -316,7 +315,7 @@ class MasterSource:
 
     A MasterSource only has one method, plot_lightcurve(), which produces a multi-panel plot of all relevant information
     """
-    def __init__(self, id, tab_sources, ra, dec, poserr, tab_optical_sources):
+    def __init__(self, session, id, tab_sources, ra, dec, poserr, tab_optical_sources):
         """
         Initialisation function, used to build a MasterSource object. We also compile the multi-instrument properties at
         this stage (variabilities, HR variabilities,...)
@@ -327,6 +326,7 @@ class MasterSource:
         :param poserr: 1 sigma Position Error of the MasterSource computed as weighted average of the constituting Source objects
         :param tab_optical_sources: Table containing the OpticalSource objects, if any
         """
+        self.session = session
         self.id = id
         self.sources = {}
         self.sources_fluxes = []
@@ -759,14 +759,14 @@ class MasterSource:
         else:
             str_num = "FFF"
         filename = f"P{obsid}CAX000VALERT0{str_num}.PDF"
-        lc_path = os.path.join(SessionUtils.get_session_path(obsid),
+        lc_path = os.path.join(self.session.path,
                                filename)
         print(f"Saving Lightcurve {lc_path}")
         plt.savefig(lc_path)
 
 
 
-def load_source_on_position(cat, ra_target, dec_target):
+def load_source_on_position(session, cat, ra_target, dec_target):
     """
     This loads the catalog data for the sources around a given position. Starts by constraining the catalog to the
     position, then loads the corresponding Source objects.
@@ -775,10 +775,10 @@ def load_source_on_position(cat, ra_target, dec_target):
     """
     #print(f"Loading {cat}...")
     cmd = f"{PATHTO.stilts_cmd} tpipe {os.path.join(PATHTO.catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<20\"' \
-    out={os.path.join(PATHTO.catalogs, str(cat)+'_MatchOnSource.fits')}"
+    out={os.path.join(session.paths, str(cat)+'_MatchOnSource.fits')}"
     cmd = shlex.split(cmd)
     subprocess.run(cmd)
-    raw_data = fits.open(os.path.join(PATHTO.catalogs,str(cat)+'_MatchOnSource.fits'), memmap=True)
+    raw_data = fits.open(os.path.join(session.path, str(cat)+'_MatchOnSource.fits'), memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     sources_raw = sources_raw[np.argsort(sources_raw[src_names[cat]])]
@@ -861,12 +861,12 @@ def load_source_on_position(cat, ra_target, dec_target):
                     obsid = obsid[obsid < 1e10]
                 source = Source(cat, name[0].strip(), flux, flux_error, time, band_flux, band_fluxerr, obsid, swift_stacked_flux,swift_stacked_flux_err,swift_stacked_times, xmm_offaxis, short_term_var)
                 dic_sources[name[0].strip()] = source
-    cmd_cleanup=f"rm {PATHTO.catalogs}{cat}_MatchOnSource.fits"
-    cmd_cleanup = shlex.split(cmd_cleanup)
-    subprocess.run(cmd_cleanup)
+    #cmd_cleanup=f"rm {PATHTO.catalogs}{cat}_MatchOnSource.fits"
+    #cmd_cleanup = shlex.split(cmd_cleanup)
+    #subprocess.run(cmd_cleanup)
     return dic_sources
 
-def load_source_on_name(cat, given_name, ra_target, dec_target):
+def load_source_on_name(session, cat, given_name, ra_target, dec_target):
     """
     This loads the catalog data for the sources around a given position. Starts by constraining the catalog to the
     position, then loads the corresponding Source objects.
@@ -875,10 +875,10 @@ def load_source_on_name(cat, given_name, ra_target, dec_target):
     """
     #print(f"Loading {cat}...")
     cmd = f"{PATHTO.stilts_cmd} tpipe {os.path.join(PATHTO.catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<1\"' \
-    out={os.path.join(PATHTO.catalogs,str(cat)+'_MatchOnSource.fits')}"
+    out={os.path.join(session.path,str(cat)+'_MatchOnSource.fits')}"
     cmd = shlex.split(cmd)
     subprocess.run(cmd)
-    raw_data = fits.open(os.path.join(PATHTO.catalogs,str(cat)+'_MatchOnSource.fits'), memmap=True)
+    raw_data = fits.open(os.path.join(session.path,str(cat)+'_MatchOnSource.fits'), memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     sources_raw = sources_raw[sources_raw[src_names[cat]]==given_name]
@@ -947,9 +947,9 @@ def load_source_on_name(cat, given_name, ra_target, dec_target):
                 obsids = obsids[obsids < 1e10]
             source = Source(cat, given_name, fluxes, flux_errors, timesteps, band_fluxes, band_fluxerr, obsids,
                                 swift_stacked_flux,swift_stacked_flux_err,swift_stacked_times, xmm_offaxes, short_term_var_flags)
-    cmd_cleanup=f"rm {PATHTO.catalogs}{cat}_MatchOnSource.fits"
-    cmd_cleanup = shlex.split(cmd_cleanup)
-    subprocess.run(cmd_cleanup)
+    #cmd_cleanup=f"rm {PATHTO.catalogs}{cat}_MatchOnSource.fits"
+    #cmd_cleanup = shlex.split(cmd_cleanup)
+    #subprocess.run(cmd_cleanup)
     return source
 
 def load_GLADE():
@@ -1019,7 +1019,7 @@ def load_Chandra_upperlimits(dic_master_sources):
         ms.chandra_ul.append(line["flux_aper_hilim_b"])
         ms.chandra_ul_dates.append(line["gti_mjd_obs"])
 
-def load_specific_master_sources(ms_id,obsid, ra_target, dec_target):
+def load_specific_master_sources(session, ms_id,obsid, ra_target, dec_target):
     """
     This function will call all previous functions and build the MasterSource, using all relevant archival data.
     For now, we don't load the OM & UVOT data
@@ -1037,11 +1037,11 @@ def load_specific_master_sources(ms_id,obsid, ra_target, dec_target):
     for cat in catalogs[:-1]:
         if line[cat]!='':
             name=line[cat][0].strip()
-            source = load_source_on_name(cat, name,  ra_target, dec_target)
+            source = load_source_on_name(session, cat, name,  ra_target, dec_target)
             if source != []:
                 tab_sources_for_this_ms.append(source)
         ms_id = line["MS_ID"][0]
-        ms = MasterSource(ms_id, tab_sources_for_this_ms, line["MS_RA"], line["MS_DEC"], line["MS_POSERR"],[])
+        ms = MasterSource(session, ms_id, tab_sources_for_this_ms, line["MS_RA"], line["MS_DEC"], line["MS_POSERR"],[])
         ms.simbad_type = line["Simbad_type"]
         if ms.simbad_type=="Galaxy":
             ms.simbad_galaxy_type = line["main_type"]

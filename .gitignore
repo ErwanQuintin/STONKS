@@ -2,6 +2,7 @@
 .pydevproject
 *eclipse*
 Data
+session/*
 stilts
 *cache*
 .settings

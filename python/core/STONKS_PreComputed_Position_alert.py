@@ -189,7 +189,7 @@ def compute_upper_limit(ra, dec, flux):
         slew_ul_dates = Time(tab_slew_upper_limits['start_date'],format="isot").mjd
     return xmm_ul, xmm_ul_dates, slew_ul, slew_ul_dates
 
-def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date, var_flag, ul=True):
+def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date, var_flag, ul=True):
     """
     Sends out alerts in the case of a transient object
     :param obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date, src_num, var_flag:
@@ -218,8 +218,8 @@ def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_
         if (var_ratio > 5) or var_flag:
             new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                            date)
-            old_ms = list(load_specific_master_sources(tab_ms_id[index_impacted_master_sources[0]],obsid, ra_target, dec_target).values())[0]
-            new_ms = MasterSource(old_ms.id,  list(old_ms.sources.values())+[new_source], old_ms.ra, old_ms.dec, old_ms.pos_err,[])
+            old_ms = list(load_specific_master_sources(session, tab_ms_id[index_impacted_master_sources[0]],obsid, ra_target, dec_target).values())[0]
+            new_ms = MasterSource(session, old_ms.id,  list(old_ms.sources.values())+[new_source], old_ms.ra, old_ms.dec, old_ms.pos_err,[])
             new_ms.xmm_ul, new_ms.xmm_ul_dates = old_ms.xmm_ul,old_ms.xmm_ul_dates
             new_ms.slew_ul, new_ms.slew_ul_dates = old_ms.slew_ul,old_ms.slew_ul_dates
             new_ms.has_short_term_var= (old_ms.has_short_term_var or var_flag)
@@ -233,7 +233,7 @@ def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_
                 if (np.nanmin(xmm_ul+slew_ul) < (flux-flux_err)/5) or var_flag:
                     new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                                    date)
-                    new_ms = MasterSource(- 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
+                    new_ms = MasterSource(session, - 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
                     new_ms.has_short_term_var = var_flag
                     new_ms.xmm_ul = xmm_ul
                     new_ms.xmm_ul_dates = xmm_ul_dates
@@ -246,7 +246,7 @@ def transient_alert(obsid, ra_target, dec_target, pos_err, flux, flux_err, band_
         elif var_flag:
             new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                            date)
-            new_ms = MasterSource(- 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
+            new_ms = MasterSource(session, - 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
             new_ms.has_short_term_var = var_flag
             new_ms.simbad_type = "Not Checked"
             tab_alerts.append(new_ms)

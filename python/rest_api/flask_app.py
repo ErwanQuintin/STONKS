@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 from multiprocessing import Process, Queue
 from constants import PATHTO
 from rest_api.logic import process_one_observation
-from session_utils import SessionUtils
+from session import Session
 
 UPLOAD_FOLDER = '/path/to/the/uploads'
 ALLOWED_EXTENSIONS = ['fit', 'fits']
@@ -42,9 +42,11 @@ def upload_file():
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             try:
-                file.save(os.path.join(PATHTO.tempo, filename))
+                session = Session()
+                obsmli_path = os.path.join(session.path, filename)
+                file.save(obsmli_path)
                 q = Queue()
-                p = Process(target=process_one_observation, args=(os.path.join(PATHTO.tempo, filename),q))
+                p = Process(target=process_one_observation, args=(session, obsmli_path,q))
                 p.start()
                 result = q.get()
                 p.join()
@@ -53,8 +55,8 @@ def upload_file():
                 
                 if result["nb_alerts"] == "0":
                     return result, 404
-                
-                tarball_path = SessionUtils.get_tarball(result["session_name"])
+                session.obsid = result["obsid"]
+                tarball_path = session.get_tarball()
                 directory, filename = os.path.split(tarball_path)
                 return send_from_directory(directory, filename)  , 200      
 

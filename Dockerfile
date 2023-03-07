@@ -48,6 +48,7 @@ ADD ./doc doc
 
 # Set the mount point for the science stuff
 RUN mkdir Data
+RUN mkdir sessions
 
 # Run the production server
 CMD gunicorn --bind 0.0.0.0:5000 --timeout 600 rest_api.wsgi_api:application
