@@ -17,3 +17,23 @@ Union's Horizon 2020 research and innovation programme under grant agreement n°
 Author: Erwan Quintin, erwan.quintin@irap.omp.eu
 
 NOTE: In its current form, the software will not work because it will be missing the catalog data. Once a solution has been found to host this massive data in a sustainable fashion, this repository will be updated.
+
+# Launch command
+
+docker run -d -p 5555:5000 --name stonks --restart unless-stopped --mount source=/home/laurent.michel/STONKS/Data,target=/home/stonks/Data,type=bind -t stonks
+
+# Start at boot:
+
+[Unit]
+Description=STONKS container
+After=docker.service
+Wants=network-online.target docker.socket
+Requires=docker.socket
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/docker start -a stonks
+ExecStop=/usr/bin/docker stop -t 3 stonks
+
+[Install]
+WantedBy=multi-user.target
