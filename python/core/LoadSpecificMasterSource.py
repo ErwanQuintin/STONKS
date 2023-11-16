@@ -30,9 +30,10 @@ import subprocess
 import os
 from dict_utils import DictUtils
 from constants import PATHTO
+import cmasher as cmr
 
 style="bmh"
-cmap_to_use="turbo"
+cmap_to_use= "cmr.torch"#"turbo"
 
 
 #path_to_catalogs = "/home/erwan/Documents/PhD/LongTermVariability/LongTermVariability_Python/NewMatchMethod/CleanCatalogs/Catalogs/FullData/"
@@ -88,8 +89,8 @@ conv_factors = {"XMM": 1/0.999,
                 "eRosita":1/0.39,
                 "Slew":1/0.999,
                 "Stacked":1/0.999,
-                "RASS":1/0.35,
-                "WGACAT":1/0.35}
+                "RASS":1/0.41,
+                "WGACAT":1/0.41}
 time_names={"XMM": "MJD_START",
             "Chandra":"gti_mjd_obs",
             "Swift":"MidTime_MJD",
@@ -456,250 +457,103 @@ class MasterSource:
 
         self.simbad_type=''
 
-    def save_lightcurve(self,dict_new_det_info):
+    def save_lightcurve(self,dict_new_det_info, flag_alert):
         """
         Produces a multi-panel plot with most of the useful multi-instrument information about the source, saving it in
          a PDF file. From left to right and top to bottom:
         1. Long term multi-instrument X-ray lightcurves, extrapolated to the 0.1-12 keV
         2. Multi-instrument X-ray spectra, used to assess if the apparent flux change are due to a wrong extrapolation
         (if the spectra are comparable in common bands, but extrapolated fluxes are not)
-        3. Hardness - Flux diagram
+        3. DSS Image
         :return: Nothing
         """
-        if self.optical_sources!={}:
-            fig, [[ax1, ax2, ax3], [ax4, ax5, ax6]] = plt.subplots(2, 3, figsize=(15,10))
-        else:
-            fig, [[ax1, ax2], [ax3,ax4]] = plt.subplots(2,2, figsize=(10,10))
+        cmap = cmr.take_cmap_colors('cmr.ocean', N=8, cmap_range=(0., 0.9))[::-1]
+        colors = {}
+        order = [7, 0, 4, 1, 3, 2, 5, 6]
+        for cat, ind in zip(catalogs, order):
+            colors[cat] = cmap[ind]
+        colors["NewXMM"] = "darkred"
+
+        fig, [[ax1, ax2], [ax3,ax4]] = plt.subplots(2,2, figsize=(10,10))
 
 
         if len(self.xmm_ul)!= 0:
-            ax1.errorbar(self.xmm_ul_dates, self.xmm_ul, yerr=0.2 * np.array(self.xmm_ul), uplims=True, fmt='none', c=colors["XMM"], label="XMM non-det.")
+            ax1.errorbar(Time(self.xmm_ul_dates,format='mjd').decimalyear, self.xmm_ul, yerr=0.2 * np.array(self.xmm_ul), uplims=True, fmt='none', c=colors["XMM"], label="XMM non-det.")
         if len(self.slew_ul)!= 0:
-            ax1.errorbar(self.slew_ul_dates, self.slew_ul, yerr=0.2 * np.array(self.slew_ul), uplims=True, fmt='none', c=colors["Slew"], label="Slew non-det.")
+            ax1.errorbar(Time(self.slew_ul_dates,format='mjd').decimalyear, self.slew_ul, yerr=0.2 * np.array(self.slew_ul), uplims=True, fmt='none', c=colors["Slew"], label="Slew non-det.")
         if len(self.chandra_ul)!= 0:
-            ax1.errorbar(self.chandra_ul_dates, self.chandra_ul, yerr=0.2 * np.array(self.chandra_ul), uplims=True, fmt='none', c=colors["Chandra"])
+            ax1.errorbar(Time(self.chandra_ul_dates,format='mjd').decimalyear, self.chandra_ul, yerr=0.2 * np.array(self.chandra_ul), uplims=True, fmt='none', c=colors["Chandra"])
 
-
-        hardness_track=[]
-        hardness_err_track=[[],[]]
-        luminosity_track=[]
-        luminosity_err_track = [[], []]
-        time_track=[]
-        catalogs_track=[]
         for cat in catalogs:
             if cat in self.sources.keys():
                 source = self.sources[cat]
                 #Plot the X-ray full band lightcurves
-                ax1.errorbar(np.array(source.timesteps), np.array(source.fluxes),
+                ax1.errorbar(Time(np.array(source.timesteps),format='mjd').decimalyear, np.array(source.fluxes),
                             yerr=np.array(source.flux_errors), fmt="o",c=colors[cat],
-                            label=source.name, markeredgecolor='gray')
+                            ms=10,label=source.name, markeredgecolor='gray')
                 if cat == "Swift":
                     times=[(stop+start)/2 for (start,stop) in zip(source.swift_stacked_times[0],source.swift_stacked_times[1])]
-                    timerange=[(stop-start)/2 for (start,stop) in zip(source.swift_stacked_times[0],source.swift_stacked_times[1])]
-                    ax1.errorbar(times, source.swift_stacked_flux,
+                    timerange=[(stop-start)/(2*365) for (start,stop) in zip(source.swift_stacked_times[0],source.swift_stacked_times[1])]
+                    ax1.errorbar(Time(times,format='mjd').decimalyear, source.swift_stacked_flux,
                                 yerr=source.swift_stacked_flux_err, xerr=timerange,
                                  fmt="o", markeredgecolor='gray', c=colors[cat])
                 tab_width = 2*np.array(band_half_width[cat])
                 for det in range(len(source.band_flux)):
                     # Plot the X-ray spectra of each detection, using the fluxes in various bands
-                    ax2.step(band_edges[cat], [source.band_flux[det][0]/tab_width[0]] + list(source.band_flux[det]/tab_width), c=colors[cat], where='pre')
-                    ax2.errorbar(band_center[cat], source.band_flux[det]/tab_width,
-                                 yerr=[source.band_fluxerr[0][det]/tab_width,source.band_fluxerr[1][det]/tab_width],
-                                 fmt="o", markeredgecolor='gray', c=colors[cat], alpha=0.4)
-                hardness_track+=list(source.hardness)
-                hardness_err_track[0] += list(source.hardness_err[0])
-                hardness_err_track[1] += list(source.hardness_err[1])
-                luminosity_track+=list(source.fluxes)
-                luminosity_err_track[0] += list(source.flux_errors[0])
-                luminosity_err_track[1] += list(source.flux_errors[1])
-                time_track+=list(source.timesteps)
-                catalogs_track+=[cat for elt in source.timesteps]
+                    good_indices=np.where(np.array(source.band_flux[det])>0)
+                    ax2.plot(np.array(band_center[cat])[good_indices], np.array(source.band_flux[det])[good_indices] / tab_width[good_indices], c=colors[cat], lw=3)
+                    ax2.errorbar(band_center[cat], source.band_flux[det] / tab_width,
+                                 yerr=[source.band_fluxerr[0][det] / tab_width,
+                                       source.band_fluxerr[1][det] / tab_width],
+                                 xerr=band_half_width[cat],
+                                 fmt="", c=colors[cat], alpha=0.2)
+                    ax2.scatter(band_center[cat], source.band_flux[det] / tab_width, facecolor=colors[cat], marker="o",
+                                edgecolor='gray', zorder=1)
+                ax2.errorbar([],[],[],[],fmt='o', markeredgecolor='gray', c=colors[cat],label=cat)
 
-                #Names are used for the web browser click button
-                if cat=="XMM":
-                    xmm_name = source.name
-                elif cat=="Chandra":
-                    chandra_name = source.name
-                elif cat=="Swift":
-                    swift_name = source.name
-
-        #2nd line of the multi-panel plot is added only if there is an optical counterpart
-        if self.optical_sources!={}:
-            optical_band_observed={"UVW2":False,"UVM2":False,"UVW1":False,"U":False,"B":False,"V":False}
-            for cat in optical_catalogs:
-                if cat in self.optical_sources.keys():
-                    opt_source = self.optical_sources[cat]
-                    lightcurves = np.transpose(opt_source.band_flux)
-                    ligthcurve_errors = np.transpose(opt_source.band_fluxerr)
-                    for lightcurve, lightcurve_err, band in zip(lightcurves, ligthcurve_errors, ["UVW2","UVM2","UVW1","U","B","V"]):
-                        if not np.isnan(lightcurve).all():
-                            optical_band_observed[band]=True
-                        #Plot the lightcurves in every filter
-                        ax4.errorbar(opt_source.timesteps, lightcurve, yerr=lightcurve_err, fmt=optical_formats[cat], markeredgecolor='gray', c=optical_colors[band])
-
-            for band in ["UVW2","UVM2","UVW1","U","B","V"]:
-                if optical_band_observed[band]:
-                    ax4.errorbar([], [], fmt="o", c=optical_colors[band], label=band, markeredgecolor='gray')
-
-            #SED plot part
-            #Next part is commented as it is linked to OM & UVOT data and SED plotting, not used for STONKS
-            """
-            all_freq = []
-            all_nuFnu = []
-            all_freq_width = []
-            all_nuFnu_err = []
-            all_formats = []
-            all_names = []
-            all_colors = []
-
-            max_flux = np.nanmax(self.sources_fluxes)
-            min_flux = np.nanmin(self.sources_fluxes)
-            cmap = matplotlib.cm.get_cmap("RdYlBu_r")
-            for (opt_cat, x_cat) in zip(["OM", "UVOT"], ['XMM', 'Swift']):
-                if (opt_cat in self.optical_sources.keys()) and (x_cat in self.sources.keys()):
-                    source = self.sources[x_cat]
-                    x_obsid = source.obsids
-                    opt_source = self.optical_sources[opt_cat]
-                    opt_obsid = opt_source.obsids
-                    common_obsids = set(x_obsid).intersection(opt_obsid)
-                    indices_x = [x_obsid.index(obsid) for obsid in common_obsids]
-                    indices_opt = [opt_obsid.index(obsid) for obsid in common_obsids]
-                    indices_only_x = [x_obsid.index(obsid) for obsid in x_obsid if obsid not in common_obsids]
-                    indices_only_opt = [opt_obsid.index(obsid) for obsid in opt_obsid if obsid not in common_obsids]
-                    for ind_x, ind_opt in zip(indices_x, indices_opt):
-                        #X-ray detections that have a matching optical detection
-                        fluxes = list(opt_source.band_flux[ind_opt])[::-1] + list(elt for elt in source.band_flux[ind_x])
-                        flux_errors = [list(opt_source.band_fluxerr[ind_opt])[::-1] + list(source.band_fluxerr[0][ind_x]),
-                                       list(opt_source.band_fluxerr[ind_opt])[::-1] + list(source.band_fluxerr[1][ind_x])]
-
-                        #To compute the SED we convert the energy into frequencies, and use these to have a nuFnu plot
-                        tab_freq = frequencies[opt_cat][::-1] + frequencies[x_cat]
-                        tab_freq_width = frequencies_half_width[opt_cat][::-1] + frequencies_half_width[x_cat]
-                        nuFnu = [freq * flux / (2 * width) for (flux, freq, width) in zip(fluxes, tab_freq, tab_freq_width)]
-                        nuFnu_err = [[freq * fluxerrneg / (2 * width) for (fluxerrneg, freq, width) in
-                                      zip(flux_errors[0], tab_freq, tab_freq_width)],
-                                     [freq * fluxerrpos / (2 * width) for (fluxerrpos, freq, width) in
-                                      zip(flux_errors[1], tab_freq, tab_freq_width)]]
-                        all_freq.append(tab_freq)
-                        all_freq_width.append(tab_freq_width)
-                        all_nuFnu.append(nuFnu)
-                        all_nuFnu_err.append(nuFnu_err)
-                        all_formats.append(hr_track_markers[x_cat])
-                        all_names.append(source.name)
-                        all_colors.append(
-                            cmap(0.9 - np.log10(source.fluxes[ind_x] / min_flux) / np.log10(max_flux / min_flux)))
-                    if len(indices_only_x) > 0:
-                        #X-ray detections without optical counterpart
-                        for ind_x in indices_only_x:
-                            fluxes = list(elt for elt in source.band_flux[ind_x])
-                            flux_errors = [list(source.band_fluxerr[0][ind_x]), list(source.band_fluxerr[1][ind_x])]
-                            tab_freq = frequencies[x_cat]
-                            tab_freq_width = frequencies_half_width[x_cat]
-                            nuFnu = [freq * flux / (2 * width) for (flux, freq, width) in
-                                     zip(fluxes, tab_freq, tab_freq_width)]
-                            nuFnu_err = [[freq * fluxerrneg / (2 * width) for (fluxerrneg, freq, width) in
-                                          zip(flux_errors[0], tab_freq, tab_freq_width)],
-                                         [freq * fluxerrpos / (2 * width) for (fluxerrpos, freq, width) in
-                                          zip(flux_errors[1], tab_freq, tab_freq_width)]]
-                            all_freq.append(tab_freq)
-                            all_freq_width.append(tab_freq_width)
-                            all_nuFnu.append(nuFnu)
-                            all_nuFnu_err.append(nuFnu_err)
-                            all_formats.append(hr_track_markers[x_cat])
-                            all_names.append(source.name)
-                            all_colors.append(
-                                cmap(0.9 - np.log10(source.fluxes[ind_x] / min_flux) / np.log10(max_flux / min_flux)))
-                    if len(indices_only_opt) > 0:
-                        #Optical detections without X-ray counterparts
-                        for ind_opt in indices_only_opt:
-                            fluxes = list(opt_source.band_flux[ind_opt])[::-1]
-                            flux_errors = [list(opt_source.band_fluxerr[ind_opt])[::-1],
-                                           list(opt_source.band_fluxerr[ind_opt])[::-1]]
-                            tab_freq = frequencies[opt_cat][::-1]
-                            tab_freq_width = frequencies_half_width[opt_cat][::-1]
-                            nuFnu = [freq * flux / (2 * width) for (flux, freq, width) in
-                                     zip(fluxes, tab_freq, tab_freq_width)]
-                            nuFnu_err = [[freq * fluxerrneg / (2 * width) for (fluxerrneg, freq, width) in
-                                          zip(flux_errors[0], tab_freq, tab_freq_width)],
-                                         [freq * fluxerrpos / (2 * width) for (fluxerrpos, freq, width) in
-                                          zip(flux_errors[1], tab_freq, tab_freq_width)]]
-                            all_freq.append(tab_freq)
-                            all_freq_width.append(tab_freq_width)
-                            all_nuFnu.append(nuFnu)
-                            all_nuFnu_err.append(nuFnu_err)
-                            all_formats.append(hr_track_markers[x_cat])
-                            all_names.append(source.name)
-                            all_colors.append(cmap(0.5))
-
-            for x_cat in catalogs:
-                #We add the X-ray detections of catalogs other than XMM and Swift
-                if (x_cat in self.sources.keys()) and (x_cat not in ['XMM', 'Swift']):
-                    source = self.sources[x_cat]
-                    for ind_x in range(len(source.band_flux)):
-                        fluxes = source.band_flux[ind_x]
-                        flux_errors = [source.band_fluxerr[0][ind_x], source.band_fluxerr[1][ind_x]]
-                        tab_freq = frequencies[x_cat]
-                        tab_freq_width = frequencies_half_width[x_cat]
-                        nuFnu = [freq * flux / (2 * width) for (flux, freq, width) in zip(fluxes, tab_freq, tab_freq_width)]
-                        nuFnu_err = [[freq * fluxerrneg / (2 * width) for (fluxerrneg, freq, width) in
-                                      zip(flux_errors[0], tab_freq, tab_freq_width)],
-                                     [freq * fluxerrpos / (2 * width) for (fluxerrpos, freq, width) in
-                                      zip(flux_errors[1], tab_freq, tab_freq_width)]]
-                        all_freq.append(tab_freq)
-                        all_freq_width.append(tab_freq_width)
-                        all_nuFnu.append(nuFnu)
-                        all_nuFnu_err.append(nuFnu_err)
-                        all_formats.append(hr_track_markers[x_cat])
-                        all_names.append(source.name)
-                        all_colors.append(
-                            cmap(0.9 - np.log10(source.fluxes[ind_x] / min_flux) / np.log10(max_flux / min_flux)))
-
-            #We plot the final obtained SEDs, adding a legend entry only for the first detection of each source
-            seen_names = []
-            for (ind, tab_freq, tab_freq_width, nuFnu, nuFnu_err, format, name, color) in zip(range(len(all_freq)),
-                                                                                              all_freq, all_freq_width,
-                                                                                              all_nuFnu, all_nuFnu_err,
-                                                                                              all_formats, all_names,
-                                                                                              all_colors):
-                ax5.plot(np.array(tab_freq)[~np.isnan(nuFnu)], np.array(nuFnu)[~np.isnan(nuFnu)], c=color, ls="--",
-                         alpha=0.4)
-                if name not in seen_names:
-                    ax5.errorbar(tab_freq, nuFnu, xerr=tab_freq_width, yerr=nuFnu_err, fmt=format, label=name, c=color)
-                    seen_names.append(name)
-                else:
-                    ax5.errorbar(tab_freq, nuFnu, xerr=tab_freq_width, yerr=nuFnu_err, fmt=format, c=color)
-
-            #We plot the Alpha_OX lightcurves
-            for band in ["UVW2","UVM2","UVW1","U","B","V"]:
-                if self.alpha_band_x_Fnu[band] != []:
-                    ax6.errorbar(self.alpha_band_x_timesteps[band], self.alpha_band_x_Fnu[band], yerr=np.transpose(self.alpha_band_x_Fnu_error[band]), fmt="o", markeredgecolor='gray', c=optical_colors[band],label=band)
-
-            """
-        order = np.argsort(time_track)
-        hardness_track=np.array(hardness_track)[order]
-        luminosity_track = np.array(luminosity_track)[order]
-        hardness_err_track=[np.array(hardness_err_track[0])[order],np.array(hardness_err_track[1])[order]]
-        luminosity_err_track=[np.array(luminosity_err_track[0])[order],np.array(luminosity_err_track[1])[order]]
-        catalogs_track = np.array(catalogs_track)[order]
-
-        correct_indices = np.where(~np.isnan(hardness_track))[0]
-        hardness_track = np.array(hardness_track)[correct_indices]
-        luminosity_track = np.array(luminosity_track)[correct_indices]
-        hardness_err_track = [np.array(hardness_err_track[0])[correct_indices], np.array(hardness_err_track[1])[correct_indices]]
-        luminosity_err_track = [np.array(luminosity_err_track[0])[correct_indices], np.array(luminosity_err_track[1])[correct_indices]]
-        catalogs_track = np.array(catalogs_track)[correct_indices]
-
-        if len(correct_indices)>0:
-            ax3.errorbar(hardness_track,luminosity_track,xerr=hardness_err_track,yerr=luminosity_err_track, alpha=0.2, linestyle="--")
-            for cat in catalogs:
-                ax3.scatter(hardness_track[catalogs_track==cat], luminosity_track[catalogs_track==cat], c=ax3.lines[-1].get_color(),marker=hr_track_markers[cat], s=50, label=cat, edgecolors="gray")
+        try:
+            size = 1500
+            fov = 2 * u.arcmin
+            result = hips2fits.query(
+                hips='CDS/P/DSS2/color',
+                width=size,
+                height=size,
+                ra=Longitude(float(dict_new_det_info['Source RA'].split('/')[0]) * u.deg),
+                dec=Latitude(float(dict_new_det_info['Source Dec'].split('/')[0]) * u.deg),
+                fov=Angle(fov),
+                projection="AIT",
+                get_query_payload=False,
+                format="jpg",
+                min_cut=0.5,
+                max_cut=99.5
+            )
+            im = ax3.imshow(result)
+            positions_x = [0.1 * size, 0.35 * size]
+            positions_y = [0.15 * size, 0.15 * size]
+            text_position_x = 0.225 * size
+            text_position_y = 0.1 * size
+            name_position_x = 0.1 * size
+            name_position_y = 0.85 * size
+            ax3.plot(positions_x, positions_y, c="w",lw=3)
+            ax3.scatter(positions_x, positions_y, c="w", marker="o", s=20)
+            scaletext = 30
+            ax3.text(text_position_x, text_position_y, f'{scaletext}"', c="w", fontsize=20,
+                     horizontalalignment='center')
+            ax3.axis("off")
+            c1 = plt.Circle((size // 2, size // 2), size * 3 * float(dict_new_det_info['Position Error'][:-1]) / (fov.to(u.arcsec).value), color='r',
+                            fill=False)
+            ax3.add_patch(c1)
+        except:
+            ax3.text(0.5,0.5, "Issues connecting to CDS server")
+            ax3.axis("off")
 
         #ax1.tick_params(axis='x', rotation=45)
         ax1.set_title("Long-term lightcurve (0.2-12 keV)")
         ax1.legend(loc="best")
         ax1.set_yscale('log')
-        ax1.set_xlabel("Time (MJD)")
+        ax1.set_xlabel("Time")
         ax1.set_ylabel(r"Flux ($erg.s^{-1}.cm^{-2}$)")
+        ax1.xaxis.set_major_locator(plt.MaxNLocator(5))
         #margin = 0.1*(self.max_time-self.min_time)
         #ax1.set_xlim(self.min_time-margin, self.max_time+margin)
 
@@ -708,38 +562,77 @@ class MasterSource:
         ax2.set_xscale('log')
         ax2.set_xlabel("Energy (keV)")
         ax2.set_ylabel(r"$F_{\nu}$ ($erg.s^{-1}.cm^{-2}.keV^{-1}$)")
+        ax2.legend()
 
-        ax3.set_title("Hardness-Luminosity diagram")
-        ax3.legend(loc="best")
-        ax3.set_yscale('log')
-        ax3.set_xlabel("Hardness")
-        ax3.set_xlim((-1.1,1.1))
-        ax3.set_ylabel(r"Flux ($erg.s^{-1}.cm^{-2}$)")
 
         #Finally, if there is a GLADE counterpart, we have distance so we convert all fluxes to luminosities, and
         #add an axis on the right of all concerned plots
         if self.glade_distance!=[] and self.flux_lum_conv_factor>0:
             second_axis_func = (lambda x:self.flux_lum_conv_factor*x, lambda x:x/self.flux_lum_conv_factor)
-            for ax in [ax1, ax3]:
-                secax = ax.secondary_yaxis('right', functions=second_axis_func)
-                secax.set_ylabel(r'Luminosity ($erg.s^{-1})$')
+            secax = ax1.secondary_yaxis('right', functions=second_axis_func)
+            secax.set_ylabel(r'Luminosity ($erg.s^{-1})$')
             secax = ax2.secondary_yaxis('right', functions=second_axis_func)
             secax.set_ylabel(r'$L_{\nu}$ ($erg.s^{-1})$')
-            if self.optical_sources != {}:
-                secax = ax4.secondary_yaxis('right', functions=second_axis_func)
-                secax.set_ylabel(r'Luminosity ($erg.s^{-1})$')
-                secax = ax5.secondary_yaxis('right', functions=second_axis_func)
-                secax.set_ylabel(r'$\nu$ $L_{\nu}$ (Hz.erg.s$^{-1}$.Hz$^{-1}$)')
-
 
         #Adding the metadata
         obsid= DictUtils.get_value_by_key(dict_new_det_info, "ObsID")
         scr_num =  DictUtils.get_value_by_key(dict_new_det_info, "SRCNUM")
+
+        ax4.set_xlim((0,1))
+        ax4.set_ylim((0,1))
+        r = fig.canvas.get_renderer()
+        for posy, key in zip([0.9,0.85,0.8],['ObsID','Date Obs', 'Target Name']):
+            t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
+            bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+            t2 = ax4.text(1., posy,  str(DictUtils.get_value_by_key(dict_new_det_info, key)), horizontalalignment='right')
+            bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+            ax4.plot([0. + bb1.width, 1. - bb2.width], [posy+0.01, posy+0.01], ls=':', c='k')
+
+        for posy, key in zip(np.linspace(0.41,0.65,5)[::-1],['SRCNUM', 'Source RA', 'Source Dec', 'Position Error','Off-axis Angles']):
+            t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
+            bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+            t2 = ax4.text(1., posy, str(DictUtils.get_value_by_key(dict_new_det_info, key)), horizontalalignment='right')
+            bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+            ax4.plot([0. + bb1.width, 1. - bb2.width], [posy+0.01, posy+0.01], ls=':', c='k')
+        t1=ax4.text(0., 0.35, r'\textbf{Instruments DetML}', fontweight='bold')
+        bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        t2=ax4.text(1., 0.29, str(DictUtils.get_value_by_key(dict_new_det_info, 'Instruments DetML')), horizontalalignment='right')
+        bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        ax4.plot([0. + bb1.width, 1.], [0.35 + 0.01, 0.35 + 0.01], ls=':', c='k')
+
+        t1 = ax4.text(0., 0.15, r"\textbf{Type of Alert}", fontweight='bold')
+        bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        t2 = ax4.text(1., 0.15, flag_alert[0], horizontalalignment='right')
+        bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.15 + 0.01, 0.15 + 0.01], ls=':', c='k')
+
+        t1 = ax4.text(0., 0.1, r"\textbf{Long-term Variability}", fontweight='bold')
+        bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        t2 = ax4.text(1., 0.1, f'{np.round(self.var_ratio,1)}', horizontalalignment='right')
+        bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.1 + 0.01, 0.1 + 0.01], ls=':', c='k')
+
+        t1 = ax4.text(0., 0.05,  r"\textbf{Short-term Variability}", fontweight='bold')
+        bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        t2 = ax4.text(1., 0.05, f'{self.has_short_term_var}', horizontalalignment='right')
+        bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.05 + 0.01, 0.05 + 0.01], ls=':', c='k')
+
+
+        if self.simbad_type.strip() !='':
+            t1 = ax4.text(0., 0.,  r"\textbf{Simbad type}", fontweight='bold')
+            bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+            t2 = ax4.text(1., 0., f'{self.simbad_type.strip()}', horizontalalignment='right')
+            bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+            ax4.plot([0. + bb1.width, 1. - bb2.width], [0. + 0.01, 0. + 0.01], ls=':', c='k')
+        else:
+            ax4.text(0., 0.,  r"\textbf{Not in Simbad}", fontweight='bold')
+        """
         string_to_plot = ''
         for key in ['ObsID','Date Obs', 'Target Name']:
             string_to_plot += str(key)+" : "+str(DictUtils.get_value_by_key(dict_new_det_info, key))+' \n'
         string_to_plot+=' \n \n'
-        for key in ['SRCNUM','Off-axis Angles', 'Source RA', 'Source Dec', 'Position Error']:
+        for key in ['SRCNUM','Off-axis Angles','Instruments DetML', 'Source RA', 'Source Dec', 'Position Error']:
             string_to_plot+= str(key)+" : "+str(DictUtils.get_value_by_key(dict_new_det_info, key))+' \n'
         string_to_plot+=' \n \n'
         if self.simbad_type.strip() !='':
@@ -747,9 +640,9 @@ class MasterSource:
         else:
             string_to_plot +="Not in Simbad \n"
         string_to_plot += f"Short-term Variability: {self.has_short_term_var} \nLong-term Variability: {np.round(self.var_ratio,1)}"
-
+        """
         ax4.axis('off')
-        ax4.text(x=0,y=0,s=string_to_plot)
+        #ax4.text(x=0,y=0,s=string_to_plot)
         plt.draw()
         plt.tight_layout()
         if obsid not in os.listdir(os.path.join(PATHTO.master_sources,'AlertsLightcurves')):
@@ -770,7 +663,7 @@ def load_source_on_position(session, cat, ra_target, dec_target):
     """
     This loads the catalog data for the sources around a given position. Starts by constraining the catalog to the
     position, then loads the corresponding Source objects.
-    :param cat: Name of the catalog, using the same naming convention as the "catalogs" Table.
+
     :return: Dictionary, with the name of the source as a key and the Source object as a value
     """
     #print(f"Loading {cat}...")
