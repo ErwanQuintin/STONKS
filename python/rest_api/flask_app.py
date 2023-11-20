@@ -27,6 +27,7 @@ def upload_file():
     if request.method == 'POST':
 
         # check if the post request has the file part
+        print(request.files)
         if 'file' not in request.files:
             result = {'status': 'ko',
                       'message': 'No file part in the request'}
@@ -69,15 +70,20 @@ def upload_file():
                   'message': f"Prohibited filename {file.filename}"}
         return result, 500
 
-@app.route("/stonks//doc")
+@app.route("/stonks/doc")
 def doc():
 
     return send_file(os.path.join(PATHTO.basedir, 'doc', 'STONKS_Documentation.pdf'))
 
+@app.route('/stonks//static/<path:subpath>')
+def get_static(subpath):
+    print(os.path.join(PATHTO.basedir, 'static', subpath))
+    return send_file(os.path.join(PATHTO.basedir, 'static', subpath))
+
 @app.route("/stonks/")
 def home():
      
-    return send_file(os.path.join(PATHTO.basedir, 'doc', "index.html"))
+    return send_file(os.path.join(PATHTO.basedir, 'doc', "index2.html"))
 
 
 if __name__ == "__main__":
