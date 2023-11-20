@@ -1,0 +1,29 @@
+.news-on-main {
+  margin-top: 54px;
+}
+.news-on-main .news {
+}
+.news-on-main .news .date {
+  text-align: center;
+  color: #076ae2;
+}
+.news-on-main .news .date .big {
+  font-weight: bold;
+  font-size: 26px;
+  line-height: 22px;
+}
+.main-overview {
+  width: 95%;
+  padding: 1px 37px 10px 41px;
+  background-color: #e4eaf0;
+  border-radius: 5px;
+  margin-top: 32px;
+}
+.main-overview ul {
+  padding-left: 20px;
+  list-style-image: url("/stonks/static/images/index/list-style-image.png");
+}
+.main-overview ul li {
+  padding-left: 5px;
+  padding-bottom: 10px;
+}

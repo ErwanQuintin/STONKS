@@ -1,0 +1,21 @@
+.fit-div {
+    width:100%;
+}
+.fit-div table {
+    width:100%;
+    border-collapse: separate;
+    border-spacing: 5px;
+    padding: 3px;
+}
+.fit-div img {
+    width: 470px;
+    height: 320px;
+}
+.fit-div .fit-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: black;
+}
+.fit-div input.ng-invalid {
+    background-color: #FA787E;
+}
