@@ -24,15 +24,20 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
+import astropy.units as u
 from tqdm import tqdm
 from astropy.constants import c
-from core.LoadSpecificMasterSource import MasterSource, Source, load_specific_master_sources
+from core.LoadSpecificMasterSource_ModifImage import MasterSource, Source, load_specific_master_sources
 from core import api as rpx
 from astropy.coordinates import SkyCoord, search_around_sky, Angle
 import time
 import shlex
 import subprocess
 from constants import PATHTO
+from scipy.special import gammaincinv, gammaincc, gammainc
+from astroquery.simbad import Simbad
+Simbad.add_votable_fields("otype")
+
 
 
 def load_master_sources_positions(obsid, ra_target, dec_target):
@@ -42,17 +47,17 @@ def load_master_sources_positions(obsid, ra_target, dec_target):
     :param obsid: ID of the Observation, used to check if the sub-region of the catalog was already computed
     :param ra_target: RA of the source
     :param dec_target: Dec of the source
-    :return: Identification, positional and flux information of the MasterSources in the 30' radius.
+    :return: Identification, positional and flux information of the MasterSources in the 45' radius.
     """
     list_precomputed_obsids = os.listdir(os.path.join(PATHTO.master_sources,'PreComputedObsidMatches'))
     list_precomputed_obsids=[elt.split(".")[0] for elt in list_precomputed_obsids]
     if str(obsid) not in list_precomputed_obsids:
-        cmd = f"stilts tpipe {os.path.join(PATHTO.master_sources,'Master_source_HistoricalExtremes.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
+        cmd = f"stilts tpipe {os.path.join(PATHTO.master_sources,'Master_source_HistoricalExtremes.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<45\"' \
         out={os.path.join(PATHTO.master_sources,'PreComputedObsidMatches',str(obsid)+'.fits')}"
         cmd = shlex.split(cmd)
         subprocess.run(cmd)
 
-        cmd = f"stilts tpipe {os.path.join(PATHTO.master_sources,'Master_source_XMM_UpperLimits.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<30\"' \
+        cmd = f"stilts tpipe {os.path.join(PATHTO.master_sources,'Master_source_XMM_UpperLimits.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<45\"' \
                 out={os.path.join(PATHTO.master_sources,'PreComputedObsidMatches','UpperLimits_'+str(obsid)+'.fits')}"
         cmd = shlex.split(cmd)
         subprocess.run(cmd)
@@ -69,7 +74,7 @@ def create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxe
     """
     Takes all the information of the new detection and creates a Source object with it
     """
-    name="New Source"
+    name="New Detection"
     new_source = Source('NewXMM', name, [flux],
            [[flux_err], [flux_err]], [date], band_fluxes,  band_fluxerr)
     new_source.ra = ra_target
@@ -108,7 +113,7 @@ def match_newDet_with_MasterSources_position(tab_ms_pos, tab_ms_poserr, new_sour
     good_sep = []
     for ind1, ind2, sep in zip(idx1, idx2, sep2D):
         #We now only keep matches for which the separation is below the sum of 3 sigma error bars
-        if sep.arcsec < max(new_source_poserr, 1) + max(tab_ms_poserr[ind2], 1):
+        if sep.arcsec < max(3*new_source_poserr, 1) + max(tab_ms_poserr[ind2], 1):
             good_ind1.append(ind1)
             good_ind2.append(ind2)
             good_sep.append(sep)
@@ -129,7 +134,6 @@ def solve_associations_new_detections(tab_has_xmm, list_possible_associations):
     tab_indices_impacted_master_sources: Indices of the archival MasterSource objects corresponding to these matches
     """
     index_impacted_master_sources = []
-
     if len(list_possible_associations)!=0:
         #It matched with the catalog
         if len(list_possible_associations)>1:
@@ -159,7 +163,25 @@ def solve_associations_new_detections(tab_has_xmm, list_possible_associations):
         flag_known_ms = 0
     return flag_known_ms, index_impacted_master_sources
 
-def compute_upper_limit(ra, dec, flux):
+def ul_from_counts_bck(N, B, cl):
+    return gammaincinv(N+1, gammainc(N+1,B)+cl*gammaincc(N+1,B))-B
+
+def combine_EPIC_ul(tab_pointed_upper_limits, ecf_dic):
+    """Takes the ordered table of count upper limits from all EPIC instruments for each observations, combines them and
+    converts them to flux"""
+    tab_splitted_ul_info = np.split(tab_pointed_upper_limits, np.unique(tab_pointed_upper_limits["obsid"], return_index=True)[1][1:])
+    xmm_ul=[]
+    xmm_ul_dates=[]
+    for observation in tab_splitted_ul_info:
+        N_EPIC = np.sum([line[24] for line in observation])
+        B_EPIC = np.sum([line[25] for line in observation])
+        lower_fraction = np.sum([line[23]*line[9]*ecf_dic[line[30]][line[31].strip()]*1e11 for line in observation])
+        xmm_ul.append(ul_from_counts_bck(N_EPIC, B_EPIC, 0.997)/lower_fraction)
+        xmm_ul_dates.append(observation[0][7])
+    xmm_ul_dates=Time(xmm_ul_dates,format="isot").mjd
+    return xmm_ul, xmm_ul_dates
+
+def compute_upper_limit(ra, dec, flux, date_obs):
     """
     Computes the XMM-Newton upper limit on a given position, using the RapidXMM framework from
     Ruiz et al. 21, available in api.py
@@ -179,15 +201,84 @@ def compute_upper_limit(ra, dec, flux):
         tab_upper_limits = rpx.query_radec(ra=[ra], dec=[dec], obstype="pointed")
     xmm_ul, xmm_ul_dates, slew_ul, slew_ul_dates= [],[],[],[]
     if len(tab_upper_limits)>0:
-        tab_pointed_upper_limits = tab_upper_limits[np.where((tab_upper_limits["obstype"]=="pointed") & (tab_upper_limits["band8_flags"]==0))]
-        tab_ecf = [ecf_dic[line["instrum"]][line["filt"]]*1e11 for line in tab_pointed_upper_limits]
-        xmm_ul = [ul_rate/ecf for ecf, ul_rate in zip(tab_ecf, tab_pointed_upper_limits['band8_ul_sigma3'])]
-        xmm_ul_dates = Time(tab_pointed_upper_limits['start_date'],format="isot").mjd
-        tab_slew_upper_limits = tab_upper_limits[np.where((tab_upper_limits["obstype"]=="slew") & (tab_upper_limits["band8_flags"]==0))]
+        ul_dates = Time(tab_upper_limits['start_date'],format="isot").mjd
+        tab_pointed_upper_limits = tab_upper_limits[np.where((tab_upper_limits["obstype"]=="pointed") & (tab_upper_limits["band8_flags"]==0) & (ul_dates<date))]
+        if len(tab_pointed_upper_limits)>0:
+            tab_pointed_upper_limits=tab_pointed_upper_limits[np.argsort(tab_pointed_upper_limits["obsid"])]
+            xmm_ul,xmm_ul_dates = combine_EPIC_ul(tab_pointed_upper_limits, ecf_dic)#[ul_rate/ecf for ecf, ul_rate in zip(tab_ecf, tab_pointed_upper_limits['band8_ul_sigma3'])]
+
+        tab_slew_upper_limits = tab_upper_limits[np.where((tab_upper_limits["obstype"]=="slew") & (tab_upper_limits["band8_flags"]==0) & (ul_dates<date))]
         tab_ecf = [ecf_dic[line["instrum"]][line["filt"]] * 1e11 for line in tab_slew_upper_limits]
         slew_ul = [ul_rate / ecf for ecf, ul_rate in zip(tab_ecf, tab_slew_upper_limits['band8_ul_sigma3'])]
         slew_ul_dates = Time(tab_slew_upper_limits['start_date'],format="isot").mjd
     return xmm_ul, xmm_ul_dates, slew_ul, slew_ul_dates
+
+def match_Simbad(ra_target, dec_target, pos_err):
+    dic_classifier = {'': '',
+                      'X': 'Unknown', 'IR': 'Unknown', 'Radio': 'Unknown', 'MIR': 'Unknown',
+                      'NIR': 'Unknown', 'HH': 'Unknown', 'HI': 'Unknown', 'HII': 'Unknown',
+                      'LensedImage': 'Unknown', 'LensingEv': 'Unknown', 'Maser': 'Unknown',
+                      'MolCld': 'Unknown', 'PartofCloud': 'Unknown', 'Radio(sub-mm)': 'Unknown',
+                      'Blue': 'Unknown', 'Possible_lensImage': 'Unknown', 'Unknown': 'Unknown',
+                      'Radio(mm)': 'Unknown', 'denseCore': 'Unknown', 'Radio(cm)': 'Unknown',
+                      'UV': 'Unknown', 'PN': 'Unknown', 'PN?': 'Unknown', "EmObj": 'Unknown',
+                      'DkNeb': 'Unknown', 'Transient': 'Unknown', 'Candidate_LensSystem': 'Unknown',
+                      'FIR': 'Unknown', 'multiple_object': 'Unknown', 'GravLensSystem': 'Unknown',
+                      'Bubble': 'Unknown', 'Cloud': 'Unknown', 'SFregion': 'Unknown',
+                      'Inexistent': 'Unknown', 'gamma': 'Unknown', 'GravLens': 'Unknown',
+                      'HVCld': 'Unknown', 'Candidate_Lens': 'Unknown', 'ISM': 'Unknown',
+                      'Void': 'Unknown', 'RfNeb': 'Unknown', 'HIshell': 'Unknown', 'Outflow': 'Unknown',
+                      'radioBurst': 'Unknown', 'Region': 'Unknown', 'Globule': 'Unknown',
+                      'outflow?': 'Unknown', 'ComGlob': 'Unknown',
+                      'GinCl': 'Galaxy', 'Galaxy': 'Galaxy', 'AGN': 'Galaxy', 'GiC': 'Galaxy', 'Sy1': 'Galaxy',
+                      'Sy2': 'Galaxy', 'AGN_Candidate': 'Galaxy', 'QSO': 'Galaxy', 'Seyfert_1': 'Galaxy',
+                      'Seyfert_2': 'Galaxy', 'LINER': 'Galaxy', 'EmG': 'Galaxy', 'RadioG': 'Galaxy', 'BClG': 'Galaxy',
+                      'LSB_G': 'Galaxy', 'LensedG': 'Galaxy', 'LensedQ': 'Galaxy', 'GroupG': 'Galaxy',
+                      'PartOfG': 'Galaxy', 'BLLac': 'Galaxy', 'GinPair': 'Galaxy', 'Possible_ClG': 'Galaxy',
+                      'Possible_G': 'Galaxy', 'Possible_GrG': 'Galaxy', 'GinGroup': 'Galaxy', 'HII_G': 'Galaxy',
+                      'Blazar': 'Galaxy', 'ClG': 'Galaxy', 'QSO_Candidate': 'Galaxy', 'Seyfert': 'Galaxy',
+                      'Blazar_Candidate': 'Galaxy', 'StarburstG': 'Galaxy', 'IG': 'Galaxy', 'SuperClG': 'Galaxy',
+                      'PartofG': 'Galaxy', 'Compact_Gr_G': 'Galaxy', 'PairG': 'Galaxy', 'BLLac_Candidate': 'Galaxy',
+                      'BlueCompG': 'Galaxy',
+                      'Orion_V*': 'Star', 'TTau*': 'Star', 'EB*': 'Star', 'YSO': 'Star', 'SB*': 'Star', '**': 'Star',
+                      'Star': 'Star', 'RotV*': 'Star', 'Candidate_RGB*': 'Star', 'low-mass*': 'Star', 'V*': 'Star',
+                      'PulsV*': 'Star', 'AGB*': 'Star', 'S*': 'Star', 'Candidate_YSO': 'Star', 'PM*': 'Star',
+                      'Irregular_V*': 'Star', 'Em*': 'Star', 'LPV*': 'Star', 'Mira': 'Star', 'WR*': 'Star',
+                      'Pec*': 'Star', 'Planet?': 'Star', 'Planet': 'Star', 'Eruptive*': 'Star', 'Cl*': 'Star',
+                      'OpCl': 'Star', 'Assoc*': 'Star', 'PulsV*WVir': 'Star', 'PulsV*bCep': 'Star', 'RRLyr': 'Star',
+                      'C*': 'Star', 'EllipVar': 'Star', 'Candidate_EB*': 'Star', 'Candidate_PulsV*WVir': 'Star',
+                      'Candidate_LP*': 'Star', 'pulsV*SX': 'Star', 'Candidate_RSG*': 'Star', 'BYDra': 'Star',
+                      'Be*': 'Star', 'Candidate_RRLyr': 'Star', 'BlueSG*': 'Star', 'Erupt*RCrB': 'Star', 'RGB*': 'Star',
+                      'RSCVn': 'Star', 'gammaDor': 'Star', 'Cl*?': 'Star', 'Candidate_C*': 'Star', 'HB*': 'Star',
+                      'Cepheid': 'Star', 'Ae*': 'Star', 'Candidate_TTau*': 'Star', 'deltaCep': 'Star',
+                      'HotSubdwarf': 'Star', 'Candidate_AGB*': 'Star', 'YellowSG*': 'Star', 'Symbiotic*': 'Star',
+                      'PulsV*delSct': 'Star', 'BlueStraggler': 'Star', 'Candidate_post-AGB*': 'Star',
+                      'RotV*alf2CVn': 'Star', 'OH/IR': 'Star', 'V*?': 'Star', 'Candidate_BSG*': 'Star',
+                      'RedSG*': 'Star', 'Candidate_brownD*': 'Star', 'Candidate_Mi*': 'Star', 'Candidate_HB*': 'Star',
+                      'Candidate_Be*': 'Star', 'Candidate_SN*': 'Star', 'brownD*': 'Star', 'SG*': 'Star',
+                      'PulsV*RVTau': 'Star', 'Candidate_WR*': 'Star', 'HV*': 'Star', 'Candidate_Hsd': 'Star',
+                      'Candidate_Ae*': 'Star', 'Candidate_Cepheid': 'Star', 'post-AGB*': 'Star', 'Candidate_**': 'Star',
+                      'Candidate_Symb*': 'Star', 'Candidate_S*': 'Star', 'Candidate_SG*': 'Star',
+                      'Candidate_low-mass*': 'Star',
+                      'GlCl': 'CompactObject', 'GlCl?': 'CompactObject', 'Pulsar': 'CompactObject',
+                      'ULX': 'CompactObject', 'ULX?': 'CompactObject', 'HMXB': 'CompactObject',
+                      'Candidate_HMXB': 'CompactObject', 'LMXB': 'CompactObject', 'Candidate_LMXB': 'CompactObject',
+                      'Nova': 'CompactObject', 'CataclyV*': 'CompactObject', 'XB': 'CompactObject',
+                      'SNR': 'CompactObject', 'SNR?': 'CompactObject', 'Candidate_WD*': 'CompactObject',
+                      'WD*': 'CompactObject', 'SN': 'CompactObject', 'gammaBurst': 'CompactObject',
+                      'Candidate_XB*': 'CompactObject', 'Candidate_BH': 'CompactObject', 'NS': 'CompactObject',
+                      'Candidate_NS': 'CompactObject', 'Neutron*': 'CompactObject', 'Candidate_CV*': 'CompactObject',
+                      'Candidate_Nova': 'CompactObject'}
+
+    result_table = Simbad.query_region(SkyCoord(ra_target, dec_target,
+                                                      unit=(u.deg, u.deg), frame='icrs'),
+                                       radius=10*u.arcsec)
+    if result_table != None:
+        result = result_table[0]
+        simbad_type = dic_classifier[result["OTYPE"]]
+    else:
+        simbad_type = ""
+    return simbad_type
 
 def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date, var_flag, ul=True):
     """
@@ -211,11 +302,17 @@ def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_e
     flag_known_ms, index_impacted_master_sources = solve_associations_new_detections(tab_has_xmm, list_possible_associations)
 
     tab_alerts=[]
+    flag_alerts=[]
+    info_source=[]
     if flag_known_ms==1:
         #flux=tab_last[0] #Temporary test, should send alerts only if already archival variable
         mini_hist = np.nanmin((tab_min[index_impacted_master_sources[0]],tab_ul[index_impacted_master_sources[0]]))
-        var_ratio = np.nanmax(((flux-flux_err)/mini_hist, tab_max[index_impacted_master_sources[0]]/(flux+flux_err)))
-        if (var_ratio > 5) or var_flag:
+        if flux < flux_err:
+            low_flux = flux
+        else:
+            low_flux = flux-flux_err
+        var_ratio = np.nanmax((low_flux/mini_hist, tab_max[index_impacted_master_sources[0]]/(flux+flux_err)))
+        if (var_ratio > 5) :#or var_flag:
             new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                            date)
             old_ms = list(load_specific_master_sources(session, tab_ms_id[index_impacted_master_sources[0]],obsid, ra_target, dec_target).values())[0]
@@ -224,25 +321,40 @@ def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_e
             new_ms.slew_ul, new_ms.slew_ul_dates = old_ms.slew_ul,old_ms.slew_ul_dates
             new_ms.has_short_term_var= (old_ms.has_short_term_var or var_flag)
             new_ms.simbad_type=old_ms.simbad_type[0]
+            new_ms.var_ratio=var_ratio
             tab_alerts.append(new_ms)
+            if var_ratio > tab_max[index_impacted_master_sources[0]]/mini_hist:
+                if flux-flux_err > tab_max[index_impacted_master_sources[0]]:
+                    flag_alerts.append('High Flux State')
+                elif flux+flux_err < mini_hist:
+                    flag_alerts.append('Low Flux State')
+            else:
+                flag_alerts.append('Past Variability')
+            info_source.append(var_ratio)
+            info_source.append(new_ms.simbad_type)
     elif flag_known_ms!=-1: #We require the archival matching to not be ambiguous. If it was ambiguous, bad idea to compute the UpperLimits
         #In the future: match Simbad here for the new sources only
         if ul:
-            xmm_ul, xmm_ul_dates, slew_ul, slew_ul_dates = compute_upper_limit(ra_target, dec_target, flux)
-            if len(xmm_ul+slew_ul)>0:
-                if (np.nanmin(xmm_ul+slew_ul) < (flux-flux_err)/5) or var_flag:
-                    new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
-                                                   date)
-                    new_ms = MasterSource(session, - 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
-                    new_ms.has_short_term_var = var_flag
-                    new_ms.xmm_ul = xmm_ul
-                    new_ms.xmm_ul_dates = xmm_ul_dates
-                    new_ms.slew_ul = slew_ul
-                    new_ms.slew_ul_dates = slew_ul_dates
-                    new_ms.var_ratio = (flux-flux_err)/np.nanmin(xmm_ul+slew_ul)
-                    new_ms.simbad_type = "Not Checked"
-                    tab_alerts.append(new_ms)
-
+            try:
+                xmm_ul, xmm_ul_dates, slew_ul, slew_ul_dates = compute_upper_limit(ra_target, dec_target, flux, date)
+                if len(xmm_ul+slew_ul)>0:
+                    if (np.nanmin(xmm_ul+slew_ul) < (flux-flux_err)/5) or var_flag:
+                        new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
+                                                       date)
+                        new_ms = MasterSource(session, - 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
+                        new_ms.has_short_term_var = var_flag
+                        new_ms.xmm_ul = xmm_ul
+                        new_ms.xmm_ul_dates = xmm_ul_dates
+                        new_ms.slew_ul = slew_ul
+                        new_ms.slew_ul_dates = slew_ul_dates
+                        new_ms.var_ratio = (flux-flux_err)/np.nanmin(xmm_ul+slew_ul)
+                        new_ms.simbad_type = match_Simbad(ra_target,dec_target,pos_err)
+                        tab_alerts.append(new_ms)
+                        flag_alerts.append('First Detection')
+                        info_source.append((flux-flux_err)/np.nanmin(xmm_ul+slew_ul))
+                        info_source.append(new_ms.simbad_type)
+            except:
+                pass
         elif var_flag:
             new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                            date)
@@ -250,8 +362,11 @@ def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_e
             new_ms.has_short_term_var = var_flag
             new_ms.simbad_type = "Not Checked"
             tab_alerts.append(new_ms)
+            flag_alerts.append('Short-term Variable Detection')
+            info_source.append(0)
+            info_source.append(new_ms.simbad_type)
 
-    return tab_alerts
+    return tab_alerts, flag_alerts, info_source
 
 
 def testing_functions_NGC7793():
@@ -293,7 +408,7 @@ def testing_functions_NGC7793():
                     sources_raw["EP_8_FLUX_ERR"],tab_band_fluxes, tab_band_fluxerr,[56061.15969907407]*len(sources_raw)):
         start = time.time()
         tab_alerts += transient_alert(1, ra, dec, 5, flux, flux_err, band_flux,
-                                     band_fluxerr, date, var_flag=False)
+                                     band_fluxerr, date, var_flag=False)[0]
         end = time.time()
         tab_times.append(end - start)
         pbar.update(1)
