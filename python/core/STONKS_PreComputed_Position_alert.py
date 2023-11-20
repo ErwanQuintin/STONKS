@@ -27,7 +27,7 @@ from astropy.time import Time
 import astropy.units as u
 from tqdm import tqdm
 from astropy.constants import c
-from core.LoadSpecificMasterSource_ModifImage import MasterSource, Source, load_specific_master_sources
+from core.LoadSpecificMasterSource import MasterSource, Source, load_specific_master_sources
 from core import api as rpx
 from astropy.coordinates import SkyCoord, search_around_sky, Angle
 import time
