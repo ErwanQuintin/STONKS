@@ -23,6 +23,9 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
+import astropy.units as u
+from astropy.coordinates import Longitude, Latitude, Angle
+from astroquery.hips2fits import hips2fits
 from tqdm import tqdm
 from astropy.constants import c
 import shlex
@@ -31,6 +34,9 @@ import os
 from dict_utils import DictUtils
 from constants import PATHTO
 import cmasher as cmr
+from matplotlib import rc
+rc('text', usetex=True)
+rc('font', **{'family': 'serif', 'serif': ['Computer Modern Roman']})
 
 style="bmh"
 cmap_to_use= "cmr.torch"#"turbo"
