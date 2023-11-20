@@ -2,7 +2,7 @@
 # STONK server image
 #
 # ABSOLUTEPATHTODATA/Data subfolders must all have a write permission
-# docker run -p 5000:5000 --mount source=ABSOLUTEPATHTODATA/Data,target=/home/stonks/Data,type=bind -it stonks
+# docker run -p 5600:5000 --mount source=ABSOLUTEPATHTODATA/Data,target=/home/stonks/Data,type=bind -it stonks
 #
 #
 FROM python:3.8-slim
@@ -45,6 +45,7 @@ ADD ./python python
 ADD ./stilts stilts
 # Get tyhe doc static files
 ADD ./doc doc
+ADD ./static static
 
 # Set the mount point for the science stuff
 RUN mkdir Data
