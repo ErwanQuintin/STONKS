@@ -46,26 +46,27 @@
 						</div>
 						<div class="col-md-3 text-right"
 							style="padding-top: 3px; padding-right: 16px">
-							<img src="/stonks/static/images/index/showquery.png" />
-
-
-							<a class="sql" data-querylang-button href="javascript:void(0);">
+							<img src="/stonks/static/images/index/showquery.png" /> <a
+								class="sql" data-querylang-button href="javascript:void(0);">
 								File format </a>
 						</div>
 					</div>
 
 					<div class="input-group">
 
-					    <input type="file" id="fileInput" class="form-control">
-					    <span class="input-group-btn"><button id="uploadButton" class="btn btn-primary">UPLOAD</button></span>
+						<input type="file" id="fileInput" class="form-control"> <span
+							class="input-group-btn"><button id="uploadButton"
+								class="btn btn-primary">UPLOAD</button></span>
 					</div>
 					<!-- Modal -->
-					<div id="emptyFileModal" class="modal" style="background-color: rgba(0, 0, 0, 0.4);" role="dialog">
+					<div id="emptyFileModal" class="modal"
+						style="background-color: rgba(0, 0, 0, 0.4);" role="dialog">
 						<div class="modal-dialog">
 							<!-- Modal content-->
 							<div class="modal-content">
 								<div class="modal-header">
-									<h4 class="modal-title">Processing the source list (can take minutes...)</h4>
+									<h4 class="modal-title">Processing the source list (can
+										take minutes...)</h4>
 								</div>
 							</div>
 						</div>
@@ -91,8 +92,10 @@
         	if( response.ok ) {
         		fileName = response.headers.get('content-disposition').split('filename=')[1].split(';')[0];
         		return  response.blob()
-            } else {
+            } else if( response.status == 404 ) {
             	alert("no variability found")
+            } else {
+            	alert("Internal error: " + response.status)
             }
         })
 	    .then(blob => {
@@ -117,13 +120,9 @@
 	});
 </script>
 
-
-
 				</div>
 			</div>
 		</div>
-
-
 
 		<div class="navbar navbar-inverse" role="navigation">
 			<div class="container">
@@ -142,9 +141,9 @@
 								src="/stonks/static/images/top_menu/home.png" /> Home </a></li>
 						<li><a target="_blank" href="/stonks/doc"><img
 								src="/stonks/static/images/top_menu/docs.png" /> Docs </a></li>
-						<li><a target="_self" href="/stonks/links"><img
+						<li><a target="_self" href="/stonks/doc/links.html"><img
 								src="/stonks/static/images/top_menu/links.png" /> Links </a></li>
-						<li><a target="_self" href="/stonks/about"><img
+						<li><a target="_self" href="/stonks/doc/about.html"><img
 								src="/stonks/static/images/top_menu/about.png" /> About </a></li>
 					</ul>
 				</div>
@@ -167,23 +166,19 @@
 							<div class="col-sm-2 date">
 								<div class="big">20</div>
 								<div class="small">
-									<span style="text-transform: capitalize">nov</span>
-									2023
+									<span style="text-transform: capitalize">nov</span> 2023
 								</div>
 							</div>
-							<div class="col-sm-10">
-								XMM2Athena page layout
-							</div>
+							<div class="col-sm-10">XMM2Athena page layout</div>
 						</div>
-						
+
 						<div class="page-header"></div>
-						
+
 						<div class="row news">
 							<div class="col-sm-2 date">
 								<div class="big">03</div>
 								<div class="small">
-									<span style="text-transform: capitalize">apr</span>
-									2023
+									<span style="text-transform: capitalize">apr</span> 2023
 								</div>
 							</div>
 							<div class="col-sm-10">
@@ -191,10 +186,13 @@
 								<ul>
 									<li>performance improvements (processing time divided by
 										2)
-									<li>possibility to request the server using a file
+										<li>possibility to request the server using a file
+									
 									<li>several improvements to the interface to improve user
 										experience
+									
 									<li>bug fixes
+								
 								</ul>
 							</div>
 						</div>
@@ -202,7 +200,7 @@
 						<div class="page-header"></div>
 
 						<div class="row news">
-							<div class="col-sm-2 date">
+											<div class="col-sm-2 date">
 								<div class="big">28</div>
 								<div class="small">
 									<span style="text-transform: capitalize">jul</span>
@@ -212,8 +210,8 @@
 							<div class="col-sm-10">
 								The 4XMM-DR12 catalog release has been added to the website.
 								Read more about it <a
-									href="http://xmmssc.irap.omp.eu/Catalogue/4XMM-DR12/4XMM_DR12.html"
-									target="_blank">here</a>. The website is still in early beta
+													href="http://xmmssc.irap.omp.eu/Catalogue/4XMM-DR12/4XMM_DR12.html"
+													target="_blank">here</a>. The website is still in early beta
 								version !
 							</div>
 						</div>
@@ -232,7 +230,8 @@
 						</div>
 						<div class="page-header"></div>
 
-					</div>
+					
+									</div>
 				</div>
 				<div class="col-sm-5">
 					<div class="main-overview">
@@ -248,15 +247,19 @@
 						<ul>
 							<li>Estimates a detection threshold to the X-ray flux at
 								that point in various energy bands,
+							
 							<li>Provides a crude estimate of the actual flux within a
 								circle centred on that point
+							
 							<li>Scans the 4XMM catalogue listing any detections within 2
 								arc-minutes, and display an X-ray image centred on the point.
+						
 						</ul>
 						<p>
 							Results are then returned in the form of a table and as a
 							downloadable FITS file. For further information on input and
 							outputs, see the online <a href='/docs'>documentation</a>
+						
 						<p>Please note that it is in its early beta stage...</p>
 					</div>
 					<br />
