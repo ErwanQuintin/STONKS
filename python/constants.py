@@ -11,6 +11,7 @@ class PATHTO:
     master_sources =  os.path.join(basedir, "Data/MasterSource/")
     stilts_cmd = os.path.join(basedir, "stilts/stilts")
     sessions = os.path.join(basedir, 'sessions')
+    precomputed_obsids = os.path.join(master_sources, 'PreComputedObsidMatches')
 
 #if os.path.exists(PATHTO.tempo) is False:
 #    print(f"create tempo dir {PATHTO.tempo}")

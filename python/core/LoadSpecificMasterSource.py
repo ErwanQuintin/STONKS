@@ -23,6 +23,9 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
+import astropy.units as u
+from astropy.coordinates import Longitude, Latitude, Angle
+from astroquery.hips2fits import hips2fits
 from tqdm import tqdm
 from astropy.constants import c
 import shlex
@@ -31,6 +34,9 @@ import os
 from dict_utils import DictUtils
 from constants import PATHTO
 import cmasher as cmr
+from matplotlib import rc
+rc('text', usetex=True)
+rc('font', **{'family': 'serif', 'serif': ['Computer Modern Roman']})
 
 style="bmh"
 cmap_to_use= "cmr.torch"#"turbo"
@@ -868,7 +874,7 @@ def load_specific_XMM_upperlimits(dic_master_sources, ms_id, obsid):
     :param dic_master_sources
     :return: Nothing; MasterSource objects are updated with the corresponding Upper Limits
     """
-    raw_data = fits.open(os.path.join(PATHTO.master_sources,'PreComputedObsidMatches','UpperLimits_'+str(obsid)+'.fits'), memmap=True)
+    raw_data = fits.open(os.path.join(PATHTO.precomputed_obsids,'UpperLimits_'+str(obsid)+'.fits'), memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     sources_raw = sources_raw[sources_raw["MS_ID"]==ms_id]

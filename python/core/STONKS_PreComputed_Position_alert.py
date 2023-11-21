@@ -51,14 +51,14 @@ def load_master_sources_positions(obsid, ra_target, dec_target):
     """
     list_precomputed_obsids = os.listdir(os.path.join(PATHTO.master_sources,'PreComputedObsidMatches'))
     list_precomputed_obsids=[elt.split(".")[0] for elt in list_precomputed_obsids]
-    if str(obsid) not in list_precomputed_obsids:
-        cmd = f"stilts tpipe {os.path.join(PATHTO.master_sources,'Master_source_HistoricalExtremes.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<45\"' \
-        out={os.path.join(PATHTO.master_sources,'PreComputedObsidMatches',str(obsid)+'.fits')}"
+    if str(obsid) not in list_precomputed_obsids or f"UpperLimits_{obsid}" not in list_precomputed_obsids:
+        cmd = f"{PATHTO.stilts_cmd} tpipe {os.path.join(PATHTO.master_sources,'Master_source_HistoricalExtremes.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<45\"' \
+        out={os.path.join(PATHTO.precomputed_obsids, str(obsid)+'.fits')}"
         cmd = shlex.split(cmd)
         subprocess.run(cmd)
 
-        cmd = f"stilts tpipe {os.path.join(PATHTO.master_sources,'Master_source_XMM_UpperLimits.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<45\"' \
-                out={os.path.join(PATHTO.master_sources,'PreComputedObsidMatches','UpperLimits_'+str(obsid)+'.fits')}"
+        cmd = f"{PATHTO.stilts_cmd} tpipe {os.path.join(PATHTO.master_sources,'Master_source_XMM_UpperLimits.fits')} cmd='select \"skyDistanceDegrees(MS_RA,MS_DEC,{ra_target},{dec_target})*60<45\"' \
+                out={os.path.join(PATHTO.precomputed_obsids, 'UpperLimits_'+str(obsid)+'.fits')}"
         cmd = shlex.split(cmd)
         subprocess.run(cmd)
 

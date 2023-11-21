@@ -27,7 +27,6 @@ def upload_file():
     if request.method == 'POST':
 
         # check if the post request has the file part
-        print(request.files)
         if 'file' not in request.files:
             result = {'status': 'ko',
                       'message': 'No file part in the request'}
@@ -58,6 +57,7 @@ def upload_file():
                 session.obsid = result["obsid"]
                 tarball_path = session.get_tarball()
                 directory, filename = os.path.split(tarball_path)
+                Session.clean_up(240)
                 return send_from_directory(directory, filename)  , 200      
 
             except Exception as exp:
@@ -77,8 +77,11 @@ def doc():
 
 @app.route('/stonks//static/<path:subpath>')
 def get_static(subpath):
-    print(os.path.join(PATHTO.basedir, 'static', subpath))
     return send_file(os.path.join(PATHTO.basedir, 'static', subpath))
+
+@app.route('/stonks/doc/<path:subpath>')
+def get_doc(subpath):
+    return send_file(os.path.join(PATHTO.basedir, 'doc', subpath))
 
 @app.route("/stonks/")
 def home():
