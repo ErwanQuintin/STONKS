@@ -380,10 +380,10 @@ class MasterSource:
                 self.min_time = min(start, self.min_time)
                 self.max_time = max(stop, self.max_time)
                 self.sources_timesteps.append((start+stop)/2)
-            if source.xmm_offaxis!=[]:
+            if len(source.xmm_offaxis) != 0:
                 if np.nanmin(source.xmm_offaxis)>1:
                     self.never_on_axis_xmm = True
-            if source.timesteps!=[]:
+            if len(source.timesteps) != 0:
                 self.min_time = min(min(source.timesteps), self.min_time)
                 self.max_time = max(max(source.timesteps), self.max_time)
             for var_flag in source.short_term_var:
