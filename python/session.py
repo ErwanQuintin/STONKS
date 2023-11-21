@@ -56,12 +56,19 @@ class Session(object):
     def clean_up(delay_hours):
         now = time.time()
         old = now - (delay_hours*3600)
-
+        # remove older sessions
         for root, dirs, _ in os.walk(PATHTO.sessions, topdown=False):
             for _dir in dirs:
                 dir_path = os.path.join(root, _dir)
                 if os.path.getmtime(dir_path) < old:
                     print(f"rm session {_dir}")
                     shutil.rmtree(dir_path)     
+        
+        # remove older sessions
+        list_precomputed_obsids = os.listdir(PATHTO.precomputed_obsids)
+        if len(list_precomputed_obsids) >= 30:
+            oldest_file = min(list_precomputed_obsids, key=os.path.getctime)
+            print(f"rm cached file {oldest_file}")
+            os.remove(os.path.abspath(oldest_file))
         
     
