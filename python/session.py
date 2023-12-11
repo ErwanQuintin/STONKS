@@ -73,7 +73,7 @@ class Session(object):
         local import to avid circular imports Session<->logic
         """
         from rest_api.logic import process_one_observation
-        process_one_observation(self, None)
+        process_one_observation(self, queue)
 
     @staticmethod
     def clean_up(delay_hours):
