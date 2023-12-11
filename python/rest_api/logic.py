@@ -31,11 +31,11 @@ class ParamHolder:
         self.m1_offax = None
         self.m2_offax = None 
 
-def process_one_observation(session, obsmli_path, queue): 
-    print(f"Loading EPIC source list {obsmli_path}")
+def process_one_observation(session, queue): 
+    print(f"Loading EPIC source list {session.filepath}")
     try:
         
-        raw_data = fits.open(obsmli_path, memmap=True)
+        raw_data = fits.open(session.filepath, memmap=True)
     
         #Building Observation information using OBSMLI header
         dict_observation_metadata = {}

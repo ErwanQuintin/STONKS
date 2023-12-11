@@ -45,7 +45,7 @@ def upload_file():
                 obsmli_path = os.path.join(session.path, filename)
                 file.save(obsmli_path)
                 q = Queue()
-                p = Process(target=process_one_observation, args=(session, obsmli_path,q))
+                p = Process(target=session.process_observation, args=(q))
                 p.start()
                 result = q.get()
                 p.join()

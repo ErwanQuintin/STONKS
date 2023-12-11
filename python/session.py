@@ -66,12 +66,12 @@ class Session(object):
     def store_source_list(self, obsmli_path):
         shutil.copy(obsmli_path, self.path)
 
-    def process_observation(self):
+    def process_observation(self, queue):
         """run the processinf
         local import to avid circular imports Session<->logic
         """
         from rest_api.logic import process_one_observation
-        process_one_observation(self, self.filepath,  None)
+        process_one_observation(self, None)
 
     @staticmethod
     def clean_up(delay_hours):

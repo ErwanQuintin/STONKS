@@ -12,5 +12,5 @@ if __name__ == '__main__':
     filepath = os.path.join(PATHTO.master_sources, f"P{obsid}EPX000OBSMLI0000.FIT")
     Session.clean_up(1)
     session = Session(filepath)
-    session.process_observation()
+    session.process_observation(None)
     session.get_tarball()
