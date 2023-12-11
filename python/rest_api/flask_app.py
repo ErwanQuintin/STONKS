@@ -41,7 +41,7 @@ def upload_file():
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             try:
-                session = Session()
+                session = Session() 
                 obsmli_path = os.path.join(session.path, filename)
                 file.save(obsmli_path)
                 q = Queue()
