@@ -9,6 +9,7 @@ import tarfile
 import time
 
 import shutil
+from astropy.io import fits
 from constants import PATHTO
 
 class Session(object):
@@ -16,13 +17,26 @@ class Session(object):
     Some utilities helping to manage the session data
     '''
     
-    def __init__(self):
+    def __init__(self, filepath):
         self.obsid=None
+        self.filepath = filepath
         self.name = f"{uuid.uuid4()}"
         self.path = os.path.realpath(os.path.join(PATHTO.sessions, self.name))
         self.remove_session_directory()
         print(f"build session folder {self.path}")
         os.mkdir(self.path )
+        self._set_obsid()
+        
+        
+    def _set_obsid(self):
+        """it is important to set the OBSid within the session make sure
+        the is no overlap with other request since process_one_observation is not
+        thread safe at all
+        """
+        raw_data = fits.open(self.filepath, memmap=True)
+    
+        obs_information = raw_data[0].header
+        self.obsid = str(obs_information['OBS_ID'])
         
     def remove_session_directory(self):
         for root, dirs, _ in os.walk(PATHTO.sessions):
@@ -52,6 +66,13 @@ class Session(object):
     def store_source_list(self, obsmli_path):
         shutil.copy(obsmli_path, self.path)
 
+    def process_observation(self):
+        """run the processinf
+        local import to avid circular imports Session<->logic
+        """
+        from rest_api.logic import process_one_observation
+        process_one_observation(self, self.filepath,  None)
+
     @staticmethod
     def clean_up(delay_hours):
         now = time.time()
@@ -70,5 +91,5 @@ class Session(object):
             oldest_file = min(list_precomputed_obsids, key=os.path.getctime)
             print(f"rm cached file {oldest_file}")
             os.remove(os.path.abspath(oldest_file))
-        
+       
     
