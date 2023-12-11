@@ -17,26 +17,28 @@ class Session(object):
     Some utilities helping to manage the session data
     '''
     
-    def __init__(self, filepath):
+    def __init__(self):
         self.obsid=None
-        self.filepath = filepath
+        self.filepath = None
         self.name = f"{uuid.uuid4()}"
         self.path = os.path.realpath(os.path.join(PATHTO.sessions, self.name))
         self.remove_session_directory()
         print(f"build session folder {self.path}")
         os.mkdir(self.path )
-        self._set_obsid()
         
         
-    def _set_obsid(self):
+    def set_obsid(self, obsmli_path):
         """it is important to set the OBSid within the session make sure
         the is no overlap with other request since process_one_observation is not
         thread safe at all
         """
+        self.filepath =obsmli_path
         raw_data = fits.open(self.filepath, memmap=True)
     
         obs_information = raw_data[0].header
         self.obsid = str(obs_information['OBS_ID'])
+        raw_data.close()
+        
         
     def remove_session_directory(self):
         for root, dirs, _ in os.walk(PATHTO.sessions):
