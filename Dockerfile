@@ -2,8 +2,13 @@
 # STONK server image
 #
 # ABSOLUTEPATHTODATA/Data subfolders must all have a write permission
-# docker run -p 5600:5000 --mount source=ABSOLUTEPATHTODATA/Data,target=/home/stonks/Data,type=bind -it stonks
+# 
 #
+# docker run -d -p 5555:5000 --name stonks --restart unless-stopped  \
+# --mount source=/home/laurent.michel/STONKS/Data,target=/home/stonks/Data,type=bind \
+# --mount source=/home/laurent.michel/STONKS/sessions,target=/home/stonks/sessions,type=bind \
+#       -t stonks
+
 #
 FROM python:3.10-slim
 LABEL Laurent Michel <laurent.michel@astro.unistra.fr>

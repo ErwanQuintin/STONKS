@@ -31,11 +31,11 @@ class ParamHolder:
         self.m1_offax = None
         self.m2_offax = None 
 
-def process_one_observation(session, obsmli_path, queue): 
-    print(f"Loading EPIC source list {obsmli_path}")
+def process_one_observation(session, queue): 
+    print(f"Loading EPIC source list {session.filepath}")
     try:
         
-        raw_data = fits.open(obsmli_path, memmap=True)
+        raw_data = fits.open(session.filepath, memmap=True)
     
         #Building Observation information using OBSMLI header
         dict_observation_metadata = {}
@@ -45,7 +45,6 @@ def process_one_observation(session, obsmli_path, queue):
         dict_observation_metadata["TargetName"] = obs_information['OBJECT'].replace("_","\_")
         dict_observation_metadata["MJD"] = Time(dict_observation_metadata["DateObs"], format="isot").mjd
 
-        session.obsid = dict_observation_metadata["ObsID"]
         sources_raw = raw_data[1].data
         sources_raw = Table(sources_raw)
         indices_not_spurious = (((sources_raw["PN_DET_ML"]>10) | (np.isnan(sources_raw["PN_DET_ML"]))) &
