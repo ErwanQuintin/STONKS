@@ -33,6 +33,7 @@ class Session(object):
         self.filepath  = os.path.join(self.path, self.filename)
         print(f"save {self.filename} in {self.filepath}")
         file.save(self.filepath)
+        self._set_obsid()
         
         
     def _set_obsid(self):
