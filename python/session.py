@@ -7,9 +7,13 @@ import os
 import uuid
 import tarfile
 import time
-
+import traceback
+import sys
 import shutil
+from multiprocessing import Process, Queue
 from astropy.io import fits
+from flask import send_from_directory
+from werkzeug.utils import secure_filename
 from constants import PATHTO
 
 class Session(object):
@@ -17,24 +21,24 @@ class Session(object):
     Some utilities helping to manage the session data
     '''
     
-    def __init__(self):
+    def __init__(self, file):
         self.obsid=None
-        self.filepath = None
+        self.filename = secure_filename(file.name)
         self.name = f"{uuid.uuid4()}"
         self.path = os.path.realpath(os.path.join(PATHTO.sessions, self.name))
         self.remove_session_directory()
         print(f"build session folder {self.path}")
         os.mkdir(self.path )
+        self.filepath  = os.path.join(self.path, self.filename)
+        file.save(self.filepath)
         
         
-    def set_obsid(self, obsmli_path):
+    def _set_obsid(self):
         """it is important to set the OBSid within the session make sure
         the is no overlap with other request since process_one_observation is not
         thread safe at all
         """
-        self.filepath =obsmli_path
-        raw_data = fits.open(self.filepath, memmap=True)
-    
+        raw_data = fits.open(self.filepath, memmap=True)  
         obs_information = raw_data[0].header
         self.obsid = str(obs_information['OBS_ID'])
         raw_data.close()
@@ -68,12 +72,37 @@ class Session(object):
     def store_source_list(self, obsmli_path):
         shutil.copy(obsmli_path, self.path)
 
-    def process_observation(self, queue):
+    def process_observation(self):
         """run the processinf
         local import to avid circular imports Session<->logic
         """
-        from rest_api.logic import process_one_observation
-        process_one_observation(self, queue)
+        try:
+            from rest_api.logic import process_one_observation
+            q = Queue()
+            p = Process(target=process_one_observation, args=(self, q))
+            p.start()
+            result = q.get()
+            p.join()
+            if result["status"] == "failed":
+                return result, 500
+            
+            if result["nb_alerts"] == "0":
+                return result, 404
+            tarball_path = self.get_tarball()
+            directory, filename = os.path.split(tarball_path)
+            Session.clean_up(240)
+            return send_from_directory(directory, filename)  , 200      
+
+        except Exception as exp:
+            traceback.print_exc(file=sys.stdout)
+            result = {'status': 'failed',
+              'message': f"Something went wrong {exp}"}
+            return result, 500
+       
+       
+        result = {'status': 'failed',
+                  'message': f"Prohibited filename {self.filename}"}
+        return result, 500
 
     @staticmethod
     def clean_up(delay_hours):

@@ -4,12 +4,8 @@ Created on 1 mars 2023
 @author: michel
 '''
 import os
-import json
-from flask import Flask, request, send_from_directory, send_file, jsonify
-from werkzeug.utils import secure_filename
-from multiprocessing import Process, Queue
+from flask import Flask, request, send_file
 from constants import PATHTO
-from rest_api.logic import process_one_observation
 from session import Session
 
 UPLOAD_FOLDER = '/path/to/the/uploads'
@@ -39,33 +35,8 @@ def upload_file():
                       'message': 'No selected file'}
             return result, 400
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            try:
-                session = Session() 
-                obsmli_path = os.path.join(session.path, filename)
-                file.save(obsmli_path)
-                q = Queue()
-                p = Process(target=session.process_observation, args=(q))
-                p.start()
-                result = q.get()
-                p.join()
-                if result["status"] == "failed":
-                    return result, 500
-                
-                if result["nb_alerts"] == "0":
-                    return result, 404
-                session.obsid = result["obsid"]
-                tarball_path = session.get_tarball()
-                directory, filename = os.path.split(tarball_path)
-                Session.clean_up(240)
-                return send_from_directory(directory, filename)  , 200      
-
-            except Exception as exp:
-                result = {'status': 'failed',
-                  'message': f"Something went wrong {str(exp)}"}
-                return result, 500
-       
-       
+            return Session(file).process_observation()
+                   
         result = {'status': 'failed',
                   'message': f"Prohibited filename {file.filename}"}
         return result, 500
