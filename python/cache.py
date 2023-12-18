@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import glob
+import time
 from threading import Thread
 from constants import PATHTO, CACHE
 
@@ -50,6 +51,6 @@ class Cache(Thread):
             print("Cache cleanup")
             Cache._clean_precomputed(PATHTO.precomputed_obsids, CACHE.precomputed_depth)
             Cache._clean_sessions(PATHTO.sessions, CACHE.number_of_cached_sessions)
-            self.sleep(CACHE.cleanup_delay)
+            time.sleep(CACHE.cleanup_delay)
               
     
