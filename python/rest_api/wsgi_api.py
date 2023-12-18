@@ -10,6 +10,7 @@ from rest_api.flask_app import app as application
 from cache import Cache
 
 if __name__ == "__main__":
+    print("starting cache monitoring")
     Cache.running = True
     Cache().start()    
     application.run()

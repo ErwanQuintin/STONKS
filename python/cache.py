@@ -45,6 +45,7 @@ class Cache(Thread):
                 os.remove(session)   
 
     def run(self):
+        print("Cache cleaner thread started")
         while Cache.running:
             print("Cache cleanup")
             Cache._clean_precomputed(PATHTO.precomputed_obsids, CACHE.precomputed_depth)
