@@ -12,6 +12,7 @@ from cache import Cache
 print("starting cache monitoring")
 Cache.running = True
 Cache().start()    
+print("cache monitoring started")
 
 if __name__ == "__main__":
     application.run()
