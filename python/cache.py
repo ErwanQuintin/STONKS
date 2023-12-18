@@ -26,7 +26,6 @@ class Cache(Thread):
             obs_to_remove.append(re.search("^.*([0-9]{10}).*$", file).group(1))
         print(f"{len(obs_to_remove)} obs to remove")
         for obs in obs_to_remove:
-            print(obs)
             files = glob.glob(cache_dir + f'/*{obs}*', recursive=False)    
             for ftr in files:
                 os.remove(ftr)   
