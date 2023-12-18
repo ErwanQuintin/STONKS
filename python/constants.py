@@ -13,6 +13,11 @@ class PATHTO:
     sessions = os.path.join(basedir, 'sessions')
     precomputed_obsids = os.path.join(master_sources, 'PreComputedObsidMatches')
 
+class CACHE:
+    precomputed_depth = 50
+    number_of_cached_sessions = 100
+    cleanup_delay = 5000 # in sec
+
 #if os.path.exists(PATHTO.tempo) is False:
 #    print(f"create tempo dir {PATHTO.tempo}")
 #    os.mkdir(PATHTO.tempo)

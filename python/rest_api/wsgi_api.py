@@ -7,7 +7,9 @@ Must be run with gunicorn: ``gunicorn --bind 0.0.0.0:5000 api.wsgi_api:applicati
 @author: michel
 """
 from rest_api.flask_app import app as application
-
+from cache import Cache
 
 if __name__ == "__main__":
+    Cache.running = True
+    Cache().start()    
     application.run()

@@ -7,6 +7,7 @@ import os
 from flask import Flask, request, send_file
 from constants import PATHTO
 from session import Session
+from cache import Cache
 
 UPLOAD_FOLDER = '/path/to/the/uploads'
 ALLOWED_EXTENSIONS = ['fit', 'fits']
@@ -64,5 +65,7 @@ if __name__ == "__main__":
     """
     Test command:  curl -J -X POST -F file=@P0804670301EPX000OBSMLI0000.FIT http://127.0.0.1:5000/process-obs
     """
+    Cache.running = True
+    Cache().start()
     app.run(host="0.0.0.0", port=5000)
 

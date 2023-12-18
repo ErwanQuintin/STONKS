@@ -1,0 +1,4 @@
+astropy
+astropy_healpix
+scipy
+tqdm

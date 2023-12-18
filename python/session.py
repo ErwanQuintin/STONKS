@@ -20,7 +20,6 @@ class Session(object):
     '''
     Some utilities helping to manage the session data
     '''
-    clean_in_progress = False
     
     def __init__(self, file):
         self.obsid=None
@@ -93,7 +92,6 @@ class Session(object):
                 return result, 404
             tarball_path = self.get_tarball()
             directory, filename = os.path.split(tarball_path)
-            Session.clean_up(240)
             return send_from_directory(directory, filename)  , 200      
 
         except Exception as exp:
@@ -107,30 +105,6 @@ class Session(object):
                   'message': f"Prohibited filename {self.filename}"}
         return result, 500
 
-    @staticmethod
-    def clean_up(delay_hours):
-        if Session.clean_in_progress:
-            return
-        Session.clean_in_progress = True
-        try:
-            now = time.time()
-            old = now - (delay_hours*3600)
-            # remove older sessions
-            for root, dirs, _ in os.walk(PATHTO.sessions, topdown=False):
-                for _dir in dirs:
-                    dir_path = os.path.join(root, _dir)
-                    if os.path.getmtime(dir_path) < old:
-                        print(f"rm session {_dir}")
-                        shutil.rmtree(dir_path)     
-            
-            # remove older sessions
-            list_precomputed_obsids = os.listdir(PATHTO.precomputed_obsids)
-            if len(list_precomputed_obsids) >= 30:
-                oldest_file = min(list_precomputed_obsids, key=os.path.getctime)
-                print(f"rm cached file {oldest_file}")
-                os.remove(os.path.abspath(oldest_file))
-        except Exception:
-            traceback.print_exc(file=sys.stdout)
-        Session.clean_in_progress = False
+        
       
     
