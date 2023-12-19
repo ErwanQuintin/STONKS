@@ -277,7 +277,7 @@ class Source:
         if len(flux)>0:
             self.min_upper = min(np.array(flux) + np.array(fluxerr[1]))
             self.max_lower = max(np.array(flux) - np.array(fluxerr[0]))
-        if swift_stacked_flux!=[]:
+        if len(swift_stacked_flux) > 0 :
             stacked_min = min(np.array(swift_stacked_flux)+np.array(swift_stacked_flux_err[1]))
             if stacked_min<0.5*self.min_upper:
                 self.swift_stacked_variable = True
