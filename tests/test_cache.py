@@ -50,7 +50,6 @@ class Test(unittest.TestCase):
         Cache._clean_sessions(data_dir, 12)
         self.assertEqual(len(glob.glob(data_dir + '/*', recursive=False)), 12)      
         contents = os.listdir(data_dir)
-
         # Iterate through each item in the directory
         for item in contents:
             item_path = os.path.join(data_dir, item)

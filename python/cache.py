@@ -35,8 +35,8 @@ class Cache(Thread):
         print(f"cleaning {session_dir}: size limited to {max_length} obs")
         files = glob.glob(session_dir + '/*', recursive=False)      
 
-        files.sort(key=os.path.getctime)
-        session_to_remove = files[max_length:]
+        files_sorted_by_date = sorted(files, key=lambda x: os.path.getmtime(x))
+        session_to_remove = files_sorted_by_date[max_length:]
         print(f"{len(session_to_remove)} sessions to remove")
         for session in session_to_remove:
             if os.path.isdir(session):

@@ -6,4 +6,4 @@ Created on 6 déc. 2023
 from client.list_processor import ListProcessor
 if __name__ == '__main__':
     processor = ListProcessor()
-    processor.mprocess_files(10)
+    processor.mprocess_files(5)
