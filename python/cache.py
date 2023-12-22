@@ -19,7 +19,12 @@ class Cache(Thread):
         print(f"cleaning {cache_dir}: size limited to {max_length} obs")
         files = glob.glob(cache_dir + '/[0-9]*', recursive=False)      
 
-        files.sort(key=os.path.getctime)
+        files_sorted_by_date = sorted(files, key=lambda x: os.path.getmtime(x))
+        
+        if len(files_sorted_by_date) <= max_length:
+            print(f"{len(files_sorted_by_date)} obs in the cache of precomputed: nothing to do")
+            return
+        
         to_remove = files[max_length:]
         obs_to_remove = []
         for file in to_remove:
@@ -32,10 +37,14 @@ class Cache(Thread):
                 
     @staticmethod
     def _clean_sessions(session_dir, max_length):
+        
         print(f"cleaning {session_dir}: size limited to {max_length} obs")
         files = glob.glob(session_dir + '/*', recursive=False)      
 
         files_sorted_by_date = sorted(files, key=lambda x: os.path.getmtime(x))
+        if len(files_sorted_by_date) <= max_length:
+            print(f"{len(files_sorted_by_date)} sessions in the cache: nothing to do")
+            return
         session_to_remove = files_sorted_by_date[max_length:]
         print(f"{len(session_to_remove)} sessions to remove")
         for session in session_to_remove:
