@@ -85,7 +85,7 @@ class Session(object):
             p.start()
             result = q.get()
             p.join()
-            if result["status"] == "failed":
+            if result["status"] == f"failed on obs {self.obsid}":
                 return result, 500
             
             if result["nb_alerts"] == "0":
@@ -96,12 +96,11 @@ class Session(object):
 
         except Exception as exp:
             traceback.print_exc(file=sys.stdout)
-            result = {'status': 'failed',
+            result = {'status': f"failed on obs {self.obsid}",
               'message': f"Something went wrong {exp}"}
             return result, 500
-       
-       
-        result = {'status': 'failed',
+              
+        result = {'status': "failed",
                   'message': f"Prohibited filename {self.filename}"}
         return result, 500
 
