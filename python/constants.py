@@ -12,7 +12,7 @@ class PATHTO:
     stilts_cmd = os.path.join(basedir, "stilts/stilts")
     sessions = os.path.join(basedir, 'sessions')
     precomputed_obsids = os.path.join(master_sources, 'PreComputedObsidMatches')
-
+print(f"working from {PATHTO.sessions}")
 class CACHE:
     precomputed_depth = 50
     number_of_cached_sessions = 100

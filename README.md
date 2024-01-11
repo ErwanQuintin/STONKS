@@ -24,6 +24,7 @@ NOTE: In its current form, the software will not work because it will be missing
 docker run -d -p 5555:5000 --name stonks \
        --restart unless-stopped \
        --mount source=/home/laurent.michel/STONKS/Data,target=/home/stonks/Data,type=bind \
+        --mount source=/home/laurent.michel/STONKS/sessions,target=/home/stonks/sessions,type=bind\
        -t stonks
 ```
 # Start at boot:
