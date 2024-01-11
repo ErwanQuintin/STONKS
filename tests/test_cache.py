@@ -17,44 +17,48 @@ class Test(unittest.TestCase):
 
     def testPrecomputed(self):
         obsid = 1234567890
+        shutil.rmtree(data_dir)
+        os.mkdir(data_dir)
+
         for _ in range(40): 
-            print(f"create files for obs {obsid} ")            
+            print(f"create files for upperlimit {obsid} ")            
             with open(f"{data_dir}/{obsid}.fits", mode='a'): pass
             with open(f"{data_dir}/UpperLimit{obsid}.fits", mode='a'): pass
             obsid += 1
             time.sleep(1)
 
-        Cache._clean_precomputed(data_dir, 12)
-        self.assertEqual(len(glob.glob(data_dir + '/[0-9]*', recursive=False)), 12)      
-        Cache._clean_precomputed(data_dir, 12)
-        self.assertEqual(len(glob.glob(data_dir + '/[0-9]*', recursive=False)), 12) 
+        Cache._clean_precomputed(data_dir, 12, day=1)
+        self.assertEqual(len(glob.glob(data_dir + '/*.fits', recursive=False)), 18)      
+        Cache._clean_precomputed(data_dir, 12, day=1)
+        self.assertEqual(len(glob.glob(data_dir + '/*.fits', recursive=False)), 18) 
         contents = os.listdir(data_dir)
-
+        print(glob.glob(data_dir + '/*.fits', recursive=False))
         # Iterate through each item in the directory
-        for item in contents:
-            item_path = os.path.join(data_dir, item)
-            if os.path.isfile(item_path):
-                os.remove(item_path)
+        shutil.rmtree(data_dir)
+        os.mkdir(data_dir)
              
     def testSessions(self):
+        shutil.rmtree(data_dir)
+        os.mkdir(data_dir)
+
         obsid = 1234567890
         for _ in range(40): 
-            print(f"create files for obs {obsid} ")            
-            with open(f"{data_dir}/{obsid}.fits", mode='a'): pass
-            with open(f"{data_dir}/UpperLimit{obsid}.fits", mode='a'): pass
+            print(f"create session for obs {obsid} ")            
+            os.mkdir(f"{data_dir}/Session_{obsid}") 
+
+            with open(f"{data_dir}/Session_{obsid}/output_{obsid}.fits", mode='a'): pass
             obsid += 1
             time.sleep(1)
             
-        Cache._clean_sessions(data_dir, 12)
-        self.assertEqual(len(glob.glob(data_dir + '/*', recursive=False)), 12)      
-        Cache._clean_sessions(data_dir, 12)
-        self.assertEqual(len(glob.glob(data_dir + '/*', recursive=False)), 12)      
+        Cache._clean_sessions(data_dir, 12, day=1)
+        self.assertEqual(len(glob.glob(data_dir + '/*', recursive=False)), 9)      
+        Cache._clean_sessions(data_dir, 12, day=1)
+        self.assertEqual(len(glob.glob(data_dir + '/*', recursive=False)),9)      
         contents = os.listdir(data_dir)
+        print(glob.glob(data_dir + '/Session*', recursive=False))
         # Iterate through each item in the directory
-        for item in contents:
-            item_path = os.path.join(data_dir, item)
-            if os.path.isfile(item_path):
-                os.remove(item_path)
+        shutil.rmtree(data_dir)
+        os.mkdir(data_dir)
 
         
 if __name__ == "__main__":

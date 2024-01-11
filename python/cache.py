@@ -15,43 +15,42 @@ class Cache(Thread):
     running = True
     
     @staticmethod
-    def _clean_precomputed(cache_dir, max_length):
+    def _clean_precomputed(cache_dir, max_length, day=86400):
         print(f"cleaning {cache_dir}: size limited to {max_length} obs")
         files = glob.glob(cache_dir + '/[0-9]*', recursive=False)      
+        # get the current time 
+        current_time = time.time()
 
-        files_sorted_by_date = sorted(files, key=lambda x: os.path.getmtime(x))
-        
-        if len(files_sorted_by_date) <= max_length:
-            print(f"{len(files_sorted_by_date)} obs in the cache of precomputed: nothing to do")
-            return
-        
-        to_remove = files[max_length:]
-        obs_to_remove = []
-        for file in to_remove:
-            obs_to_remove.append(re.search("^.*([0-9]{10}).*$", file).group(1))
-        print(f"{len(obs_to_remove)} obs to remove")
-        for obs in obs_to_remove:
-            files = glob.glob(cache_dir + f'/*{obs}*', recursive=False)    
-            for ftr in files:
-                os.remove(ftr)   
-                
+        # loop over all the files 
+        for ftr in files:
+            file_time = os.stat(ftr).st_mtime
+            dt = current_time - 10*day
+            if(file_time < dt):
+                obs = re.search("^.*([0-9]{10}).*$", ftr).group(1)
+                files = glob.glob(cache_dir + f'/*{obs}*', recursive=False)    
+                for _ftr in files:
+                    os.remove(_ftr)  
+                    print(f" Delete : {_ftr} dt={(current_time - file_time)}")
+        return
+
     @staticmethod
-    def _clean_sessions(session_dir, max_length):
+    def _clean_sessions(session_dir, max_length, day=86400):
         
         print(f"cleaning {session_dir}: size limited to {max_length} obs")
         files = glob.glob(session_dir + '/*', recursive=False)      
-
-        files_sorted_by_date = sorted(files, key=lambda x: os.path.getmtime(x))
-        if len(files_sorted_by_date) <= max_length:
-            print(f"{len(files_sorted_by_date)} sessions in the cache: nothing to do")
-            return
-        session_to_remove = files_sorted_by_date[max_length:]
-        print(f"{len(session_to_remove)} sessions to remove")
-        for session in session_to_remove:
-            if os.path.isdir(session):
-                shutil.rmtree(session)  
-            else:
-                os.remove(session)   
+        # get the current time 
+        current_time = time.time() 
+          
+        # loop over all the files 
+        for session in files: 
+            file_time = os.stat(session).st_mtime 
+            dt = current_time - 10*day
+            if(file_time < dt): 
+                print(f" Delete : {session}  dt={(current_time - file_time)} ") 
+                if os.path.isdir(session):
+                    shutil.rmtree(session)
+                else:
+                    os.remove(session)
 
     def run(self):
         print("Cache cleaner thread started")
