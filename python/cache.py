@@ -18,6 +18,9 @@ class Cache(Thread):
     def _clean_precomputed(cache_dir, max_length, day=86400):
         print(f"cleaning {cache_dir}: size limited to {max_length} obs")
         files = glob.glob(cache_dir + '/[0-9]*', recursive=False)      
+        if len(files)  < max_length:
+            print(f"{len(files)}  precomputed corrs in cache: not need to clean up") 
+            return
         # get the current time 
         current_time = time.time()
 
@@ -40,7 +43,9 @@ class Cache(Thread):
         files = glob.glob(session_dir + '/*', recursive=False)      
         # get the current time 
         current_time = time.time() 
-          
+        if len(files)  < max_length:
+            print(f" {len(files)}  sessions in cache: not need to clean up") 
+            return
         # loop over all the files 
         for session in files: 
             file_time = os.stat(session).st_mtime 
