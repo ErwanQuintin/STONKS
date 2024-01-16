@@ -101,13 +101,14 @@ class ListProcessor:
                     with open(output_file_path, 'wb') as output_file:
                         output_file.write(response.content)
                     print(f"File successfully sent and response saved to {output_file_path}")
-                else:
-                    print(f"Error: Received status code {response.status_code} from the service {response.content}")
+                elif response.status_code == 404:
+                    print(f"Empty: Received status code {response.status_code} from the service {response.content}")
                     with open(os.path.join(OUTPUT_DIR, f"{obs_id}.empty"), 'wb') as output_file:
                         output_file.write(b"empty file\n")
-
-                    if response.status_code != 404:
-                        sys.exit(1)
+                else
+                    print(f"Error: Received status code {response.status_code} from the service {response.content}")
+                    with open(os.path.join(OUTPUT_DIR, f"{obs_id}.error"), 'wb') as output_file:
+                        output_file.write(b"empty file\n")
 
             if compressed:
                 print(f"remove {file_path}")
