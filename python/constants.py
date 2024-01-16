@@ -12,10 +12,10 @@ class PATHTO:
     stilts_cmd = os.path.join(basedir, "stilts/stilts")
     sessions = os.path.join(basedir, 'sessions')
     precomputed_obsids = os.path.join(master_sources, 'PreComputedObsidMatches')
-
+print(f"working from {PATHTO.sessions}")
 class CACHE:
     precomputed_depth = 50
-    number_of_cached_sessions = 100
+    number_of_cached_sessions = 1000
     cleanup_delay = 5000 # in sec
 
 #if os.path.exists(PATHTO.tempo) is False:
