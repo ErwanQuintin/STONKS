@@ -3,12 +3,13 @@ Created on 6 déc. 2023
 
 @author: michel
 '''
-import os, sys
+import os, json
 from urllib.parse import unquote
 import requests
 import tempfile
 import multiprocessing as mp
 import gzip
+from dict_utils import DictUtils
 
 STONKS_URL = "http://serendib.astro.unistra.fr:5555/stonks/process-obs"
 DATA_DIR = "/rawdata/4XMMdr13/ready_to_load/"
@@ -105,10 +106,12 @@ class ListProcessor:
                     print(f"Empty: Received status code {response.status_code} from the service {response.content}")
                     with open(os.path.join(OUTPUT_DIR, f"{obs_id}.empty"), 'wb') as output_file:
                         output_file.write(b"empty file\n")
-                else
+                else:
                     print(f"Error: Received status code {response.status_code} from the service {response.content}")
+                    
+                    json.dump( response.json(), open( os.path.join(OUTPUT_DIR, f"{obs_id}.error"), 'w' ) )
                     with open(os.path.join(OUTPUT_DIR, f"{obs_id}.error"), 'wb') as output_file:
-                        output_file.write(b"empty file\n")
+                        json.dump(response.json(), output_file)
 
             if compressed:
                 print(f"remove {file_path}")
