@@ -44,6 +44,10 @@ def process_one_observation(session, queue):
         dict_observation_metadata["DateObs"] = obs_information['DATE-OBS']
         dict_observation_metadata["TargetName"] = obs_information['OBJECT'].replace("_","\_")
         dict_observation_metadata["MJD"] = Time(dict_observation_metadata["DateObs"], format="isot").mjd
+        dict_observation_metadata["ExpTime"] = np.max((int(obs_information['EXPOS_PN']),
+                                                       int(obs_information['EXPOS_M1']),
+                                                       int(obs_information['EXPOS_M2'])))
+
 
         sources_raw = raw_data[1].data
         sources_raw = Table(sources_raw)
@@ -58,7 +62,7 @@ def process_one_observation(session, queue):
         for line in sources_raw["ERR_EP_1_FLUX","ERR_EP_2_FLUX","ERR_EP_3_FLUX","ERR_EP_4_FLUX","ERR_EP_5_FLUX"]:
             tab_band_fluxerr.append([[list(line)], [list(line)]])
     
-        for ra, dec, pos_err, flux, flux_err, band_flux, band_fluxerr, src_num, pn_offax, m1_offax, m2_offax, pn_detml,m1_detml, m2_detml, ep_detml\
+        for ra, dec, pos_err, flux, flux_err, band_flux, band_fluxerr, src_num, pn_offax, m1_offax, m2_offax, pn_detml, m1_detml, m2_detml, ep_detml\
                 in zip(sources_raw["RA"],sources_raw["DEC"],sources_raw["RADEC_ERR"], sources_raw["EP_TOT_FLUX"],\
                         sources_raw["ERR_EP_TOT_FLUX"],tab_band_fluxes, tab_band_fluxerr, sources_raw["SRC_NUM"],
                     sources_raw["PN_OFFAX"],sources_raw["M1_OFFAX"],sources_raw["M2_OFFAX"], sources_raw["PN_DET_ML"],
@@ -104,12 +108,13 @@ def process_one_source(param_holder, observation_metadata, session):
     dict_detection_info["ObsID"]=observation_metadata["ObsID"]
     dict_detection_info["Date Obs"]=observation_metadata["DateObs"]
     dict_detection_info["Target Name"]=observation_metadata["TargetName"]
+    dict_detection_info["Exposure Time"] = str(observation_metadata["ExpTime"])+" s"
     dict_detection_info['SRCNUM'] = str(param_holder.src_num)
     dict_detection_info['Off-axis Angles'] = f"PN: {param_holder.pn_offax:.1f}', M1: {param_holder.m1_offax:.1f}', M2: {param_holder.m2_offax:.1f}'"
     dict_detection_info['Instruments DetML'] = f'PN: {param_holder.pn_detml:.1f}, M1: {param_holder.m1_detml:.1f}, M2: {param_holder.m2_detml:.1f}, EP: {param_holder.ep_detml:.1f}'
     c=SkyCoord(param_holder.ra*u.deg,param_holder.dec*u.deg).to_string('hmsdms', sep=":")
-    dict_detection_info['Source RA']= f'{np.round(param_holder.ra, 4)}   /   {c.split(" ")[0]}'
-    dict_detection_info['Source Dec']= f'{np.round(param_holder.dec, 4)}   /   {c.split(" ")[1]}'
+    dict_detection_info['Source RA']= f'{np.round(param_holder.ra, 2)}   /   {c.split(" ")[0].split(".")[0]}'
+    dict_detection_info['Source Dec']= f'{np.round(param_holder.dec, 2)}   /   {c.split(" ")[1].split(".")[0]}'
     dict_detection_info['Position Error']=f'{param_holder.pos_err:.2f}"'
 
     result_alert, flag_alert, info_source = transient_alert(session,
@@ -124,6 +129,7 @@ def process_one_source(param_holder, observation_metadata, session):
                                    observation_metadata["MJD"],
                                    var_flag=False,
                                    )
+
     if result_alert!=[]: #If there is a transient alert
         tab_alerts += result_alert
         tab_dic_infos.append(dict_detection_info)

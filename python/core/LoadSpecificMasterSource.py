@@ -182,24 +182,41 @@ hr_bandlimit_index = {"XMM":3,"NewXMM":3,"Chandra":2,"Swift":2,"Slew":1,"eRosita
 
 #Conversion factors used to convert the flux in the instrument full band to the 0.1-12 keV band, assuming a spectral
 #shape given by a standard powerlaw of photon index Gamma=1.7 and absorption nH=3e20 cm-2.
-band_conv_factors_soft = {"XMM":0.35/0.35,
-                          "NewXMM":0.35/0.35,
-                          "Chandra":0.35/0.28,
-                          "Swift":0.35/0.34,
-                          "Slew":0.35/0.35,
-                          "eRosita":0.35/0.35,
-                          "RASS":0.35/0.35,
-                          "WGACAT":0.35/0.35,
-                          "Stacked":0.35/0.35}
-band_conv_factors_hard = {"XMM":0.65/0.65,
-                          "NewXMM":0.65/0.65,
-                          "Chandra":0.65/0.41,
-                          "Swift":0.65/0.56,
-                          "Slew":0.65/0.65,
-                          "eRosita":0.65/0.25,
-                          "RASS":np.nan,
-                          "WGACAT":np.nan,
-                          "Stacked":0.65/0.65}
+# band_conv_factors_soft = {"XMM":0.35/0.35,
+#                           "NewXMM":0.35/0.35,
+#                           "Chandra":0.35/0.28,
+#                           "Swift":0.35/0.34,
+#                           "Slew":0.35/0.35,
+#                           "eRosita":0.35/0.35,
+#                           "RASS":0.35/0.35,
+#                           "WGACAT":0.35/0.35,
+#                           "Stacked":0.35/0.35}
+# band_conv_factors_hard = {"XMM":0.65/0.65,
+#                           "NewXMM":0.65/0.65,
+#                           "Chandra":0.65/0.41,
+#                           "Swift":0.65/0.56,
+#                           "Slew":0.65/0.65,
+#                           "eRosita":0.65/0.25,
+#                           "RASS":np.nan,
+#                           "WGACAT":np.nan,
+#                           "Stacked":0.65/0.65}
+
+
+#Values of hardness ratios at which the spectral assumption might break down, leading to a warning in the alert
+dic_soft_threshold={'XMM': -0.415,
+                    'NewXMM': -0.415,
+                    'Slew': -0.415,
+                    'Stacked': -0.415,
+                    'Chandra': -0.33,
+                    'Swift': -0.4,
+                    'eRosita': -0.62}#For Gamma=2.5
+dic_hard_threshold={'XMM': 0.88,
+                    'NewXMM': 0.88,
+                    'Slew': 0.88,
+                    'Stacked': 0.88,
+                    'Chandra': 0.74,
+                    'Swift': 0.84,
+                    'eRosita': 0.45}#For Gamma=0.5
 
 hr_track_markers = {"XMM":"o","NewXMM":'o',"Chandra":"v","Swift":"s","Slew":"P","eRosita":"^","RASS":"d","WGACAT":"d","Stacked":"*"}
 
@@ -240,15 +257,15 @@ class Source:
         self.band_flux = band_flux
         self.band_fluxerr = band_fluxerr
 
-        self.soft_dets = [np.sum(det[:hr_bandlimit_index[catalog]])*band_conv_factors_soft[catalog] for det in self.band_flux]
-        self.soft_errors = [[np.sqrt(np.sum(np.array(err_neg[:hr_bandlimit_index[catalog]])**2))*band_conv_factors_soft[catalog] for err_neg in self.band_fluxerr[0]],
-                            [np.sqrt(np.sum(np.array(err_pos[:hr_bandlimit_index[catalog]])**2))*band_conv_factors_soft[catalog] for err_pos in self.band_fluxerr[1]]]
+        self.soft_dets = [np.sum(det[:hr_bandlimit_index[catalog]]) for det in self.band_flux]
+        self.soft_errors = [[np.sqrt(np.sum(np.array(err_neg[:hr_bandlimit_index[catalog]])**2)) for err_neg in self.band_fluxerr[0]],
+                            [np.sqrt(np.sum(np.array(err_pos[:hr_bandlimit_index[catalog]])**2)) for err_pos in self.band_fluxerr[1]]]
         if catalog!= "RASS" and catalog!="WGACAT":
-            self.hard_dets = [np.sum(det[hr_bandlimit_index[catalog]:])*band_conv_factors_hard[catalog] for det in self.band_flux]
+            self.hard_dets = [np.sum(det[hr_bandlimit_index[catalog]:]) for det in self.band_flux]
             self.hard_errors = [
-                [np.sqrt(np.sum(np.array(err_neg[hr_bandlimit_index[catalog]:])**2)) * band_conv_factors_hard[catalog] for err_neg in
+                [np.sqrt(np.sum(np.array(err_neg[hr_bandlimit_index[catalog]:])**2)) for err_neg in
                  self.band_fluxerr[0]],
-                [np.sqrt(np.sum(np.array(err_pos[hr_bandlimit_index[catalog]:])**2)) * band_conv_factors_hard[catalog] for err_pos in
+                [np.sqrt(np.sum(np.array(err_pos[hr_bandlimit_index[catalog]:])**2)) for err_pos in
                  self.band_fluxerr[1]]]
         else:
             self.hard_dets = [np.nan for det in self.fluxes]
@@ -266,6 +283,11 @@ class Source:
                            np.array(self.hard_dets) + np.array(self.hard_errors[1]))
         self.hardness_err = [[hr - (hard-soft)/(hard+soft) for (soft,hard,hr) in zip(up_soft, low_hard, self.hardness)],
                              [(hard-soft)/(hard+soft) - hr for (soft,hard,hr) in zip(low_soft, up_hard, self.hardness)]]
+        self.has_spectral_warning = False
+        notnanhardness = np.array(self.hardness)[~np.isnan(self.hardness)]
+        if len(notnanhardness)>0:
+            self.has_spectral_warning = False in ((np.array(self.hardness)<dic_hard_threshold[catalog])
+                                                  &(np.array(self.hardness)>dic_soft_threshold[catalog]))
         self.swift_stacked_flux = swift_stacked_flux
         self.swift_stacked_flux_err = swift_stacked_flux_err
         self.swift_stacked_times = swift_stacked_times
@@ -346,6 +368,7 @@ class MasterSource:
         self.has_short_term_var = False
         self.min_time=60000
         self.max_time=0
+        self.has_spectral_warning=False
         for source in tab_sources:
             if ("XMM" in self.sources.keys()) and (source.catalog == "Stacked"):
                 #We remove the Stacked detection that correspond to a clean XMM detection
@@ -389,6 +412,8 @@ class MasterSource:
             for var_flag in source.short_term_var:
                 if var_flag>0:
                     self.has_short_term_var=True
+            if source.has_spectral_warning:
+                self.has_spectral_warning=True
         self.sources_fluxes = np.array(self.sources_fluxes)
         self.sources_error_bars = np.array(self.sources_error_bars)
 
@@ -462,6 +487,8 @@ class MasterSource:
         self.glade_distance=[]
 
         self.simbad_type=''
+        self.simbad_name=''
+
 
     def save_lightcurve(self,dict_new_det_info, flag_alert):
         """
@@ -538,13 +565,16 @@ class MasterSource:
             positions_y = [0.15 * size, 0.15 * size]
             text_position_x = 0.225 * size
             text_position_y = 0.1 * size
-            name_position_x = 0.1 * size
-            name_position_y = 0.85 * size
+            dss_position_x = 0.05 * size
+            dss_position_y = 0.95 * size
             ax3.plot(positions_x, positions_y, c="w",lw=3)
             ax3.scatter(positions_x, positions_y, c="w", marker="o", s=20)
             scaletext = 30
             ax3.text(text_position_x, text_position_y, f'{scaletext}"', c="w", fontsize=20,
                      horizontalalignment='center')
+            t=ax3.text(dss_position_x, dss_position_y, 'DSS colored (400-600 nm)', c="w", fontsize=20,
+                     horizontalalignment='left',)
+            t.set_bbox(dict(facecolor='k',alpha=0.5,edgecolor='k'))
             ax3.axis("off")
             c1 = plt.Circle((size // 2, size // 2), size * 3 * float(dict_new_det_info['Position Error'][:-1]) / (fov.to(u.arcsec).value), color='r',
                             fill=False)
@@ -555,7 +585,7 @@ class MasterSource:
 
         #ax1.tick_params(axis='x', rotation=45)
         ax1.set_title("Long-term lightcurve (0.2-12 keV)")
-        ax1.legend(loc="best")
+        ax1.legend()
         ax1.set_yscale('log')
         ax1.set_xlabel("Time")
         ax1.set_ylabel(r"Flux ($erg.s^{-1}.cm^{-2}$)")
@@ -587,52 +617,55 @@ class MasterSource:
         ax4.set_xlim((0,1))
         ax4.set_ylim((0,1))
         r = fig.canvas.get_renderer()
-        for posy, key in zip([0.9,0.85,0.8],['ObsID','Date Obs', 'Target Name']):
+        for posy, key in zip([0.95,0.9, 0.85, 0.8],['ObsID','Date Obs','Target Name','Exposure Time']):
             t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
             bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             t2 = ax4.text(1., posy,  str(DictUtils.get_value_by_key(dict_new_det_info, key)), horizontalalignment='right')
             bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             ax4.plot([0. + bb1.width, 1. - bb2.width], [posy+0.01, posy+0.01], ls=':', c='k')
 
-        for posy, key in zip(np.linspace(0.41,0.65,5)[::-1],['SRCNUM', 'Source RA', 'Source Dec', 'Position Error','Off-axis Angles']):
+        for posy, key in zip(np.arange(0.5,0.75, 0.05)[::-1],['SRCNUM', 'Source RA', 'Source Dec', 'Position Error','Off-axis Angles']):
             t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
             bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             t2 = ax4.text(1., posy, str(DictUtils.get_value_by_key(dict_new_det_info, key)), horizontalalignment='right')
             bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             ax4.plot([0. + bb1.width, 1. - bb2.width], [posy+0.01, posy+0.01], ls=':', c='k')
-        t1=ax4.text(0., 0.35, r'\textbf{Instruments DetML}', fontweight='bold')
+        t1=ax4.text(0., 0.45, r'\textbf{Instruments DetML}', fontweight='bold')
         bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        t2=ax4.text(1., 0.29, str(DictUtils.get_value_by_key(dict_new_det_info, 'Instruments DetML')), horizontalalignment='right')
+        t2=ax4.text(1., 0.4, str(DictUtils.get_value_by_key(dict_new_det_info, 'Instruments DetML')), horizontalalignment='right')
         bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        ax4.plot([0. + bb1.width, 1.], [0.35 + 0.01, 0.35 + 0.01], ls=':', c='k')
+        ax4.plot([0. + bb1.width, 1.], [0.45 + 0.01, 0.45 + 0.01], ls=':', c='k')
 
-        t1 = ax4.text(0., 0.15, r"\textbf{Type of Alert}", fontweight='bold')
+        t1 = ax4.text(0., 0.3, r"\textbf{Type of Alert}", fontweight='bold')
         bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        t2 = ax4.text(1., 0.15, flag_alert[0], horizontalalignment='right')
+        t2 = ax4.text(1., 0.3, flag_alert[0], horizontalalignment='right')
         bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.15 + 0.01, 0.15 + 0.01], ls=':', c='k')
+        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.3 + 0.01, 0.3 + 0.01], ls=':', c='k')
 
-        t1 = ax4.text(0., 0.1, r"\textbf{Long-term Variability}", fontweight='bold')
+        t1 = ax4.text(0., 0.25, r"\textbf{Long-term Variability}", fontweight='bold')
         bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        t2 = ax4.text(1., 0.1, f'{np.round(self.var_ratio,1)}', horizontalalignment='right')
+        t2 = ax4.text(1., 0.25, f'{np.round(self.var_ratio,1)}', horizontalalignment='right')
         bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.1 + 0.01, 0.1 + 0.01], ls=':', c='k')
+        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.25 + 0.01, 0.25 + 0.01], ls=':', c='k')
 
-        t1 = ax4.text(0., 0.05,  r"\textbf{Short-term Variability}", fontweight='bold')
+        t1 = ax4.text(0., 0.2,  r"\textbf{Short-term Variability}", fontweight='bold')
         bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        t2 = ax4.text(1., 0.05, f'{self.has_short_term_var}', horizontalalignment='right')
+        t2 = ax4.text(1., 0.2, f'{self.has_short_term_var}', horizontalalignment='right')
         bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.05 + 0.01, 0.05 + 0.01], ls=':', c='k')
-
+        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.2 + 0.01, 0.2 + 0.01], ls=':', c='k')
 
         if self.simbad_type.strip() !='':
-            t1 = ax4.text(0., 0.,  r"\textbf{Simbad type}", fontweight='bold')
+            t1 = ax4.text(0., 0.15,  r"\textbf{Simbad}", fontweight='bold')
             bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-            t2 = ax4.text(1., 0., f'{self.simbad_type.strip()}', horizontalalignment='right')
+            t2 = ax4.text(1., 0.15, f'{self.simbad_type.strip()} ({self.simbad_name.strip()})', horizontalalignment='right')
             bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-            ax4.plot([0. + bb1.width, 1. - bb2.width], [0. + 0.01, 0. + 0.01], ls=':', c='k')
+            ax4.plot([0. + bb1.width, 1. - bb2.width], [0.15 + 0.01, 0.15 + 0.01], ls=':', c='k')
         else:
-            ax4.text(0., 0.,  r"\textbf{Not in Simbad}", fontweight='bold')
+            ax4.text(0., 0.15,  r"\textbf{Not in Simbad}", fontweight='bold')
+
+        if self.has_spectral_warning:
+            t1 = ax4.text(0., 0.05, r"\textbf{!!! Warning: extreme spectrum might impact variability !!!}", fontweight='bold')
+            # bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
         """
         string_to_plot = ''
         for key in ['ObsID','Date Obs', 'Target Name']:
@@ -662,8 +695,6 @@ class MasterSource:
                                filename)
         print(f"Saving Lightcurve {lc_path}")
         plt.savefig(lc_path)
-
-
 
 def load_source_on_position(session, cat, ra_target, dec_target):
     """
