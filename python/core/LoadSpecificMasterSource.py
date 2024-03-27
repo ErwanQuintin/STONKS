@@ -31,6 +31,7 @@ from astropy.constants import c
 import shlex
 import subprocess
 import os
+import json
 from dict_utils import DictUtils
 from constants import PATHTO
 import cmasher as cmr
@@ -695,6 +696,48 @@ class MasterSource:
                                filename)
         print(f"Saving Lightcurve {lc_path}")
         plt.savefig(lc_path)
+
+    def save_json_alert(self, dict_new_det_info, flag_alert, param_holder):
+        """Save the alert properties as a JSON file, to be used for a database"""
+        obsid= DictUtils.get_value_by_key(dict_new_det_info, "ObsID")
+        scr_num =  DictUtils.get_value_by_key(dict_new_det_info, "SRCNUM")
+        if obsid not in os.listdir(os.path.join(PATHTO.master_sources,'AlertsLightcurves')):
+            os.mkdir(os.path.join(PATHTO.master_sources,'AlertsLightcurves',obsid))
+        if scr_num.isdigit() is True:
+            str_num = "{:03x}".format(int(scr_num))
+        else:
+            str_num = "FFF"
+
+        # Edit the detection infos from AlertPDF-oriented to JSON-oriented
+        dict_new_det_info.pop("Off-axis Angles", None)
+        dict_new_det_info.pop("Instruments DetML", None)
+        dict_new_det_info['EP_DETML']=f'{param_holder.ep_detml:.1f}'
+        dict_new_det_info['PN_DETML']=f'{param_holder.pn_detml:.1f}'
+        dict_new_det_info['M1_DETML']=f'{param_holder.m1_detml:.1f}'
+        dict_new_det_info['M2_DETML']=f'{param_holder.m2_detml:.1f}'
+        dict_new_det_info['PN_OFFAX']=f'{param_holder.pn_offax:.1f}'
+        dict_new_det_info['M1_OFFAX']=f'{param_holder.m1_offax:.1f}'
+        dict_new_det_info['M2_OFFAX']=f'{param_holder.m2_offax:.1f}'
+
+        dict_new_det_info['VarAmplitude']=np.round(self.var_ratio,1)
+        dict_new_det_info['LastFlux']=f'{param_holder.flux:.1e}'
+        dict_new_det_info['LastFluxErr'] = f'{param_holder.flux_err:.1e}'
+        last_soft, last_hard = np.nansum(param_holder.band_flux[0][:3]), np.nansum(param_holder.band_flux[0][3:])
+        dict_new_det_info['LastHR']=f'{(last_hard-last_soft)/(last_hard+last_soft):.2f}'
+        dict_new_det_info['ShortTermVar']=f'{self.has_short_term_var}'
+        if self.simbad_type.strip() !='':
+            dict_new_det_info['Simbad']= f'{self.simbad_type.strip()} ({self.simbad_name.strip()})'
+        else:
+            dict_new_det_info['Simbad']= 'Not in Simbad'
+
+        dict_new_det_info['SpectralWarning']=f'{self.has_spectral_warning}'
+
+        filename = f"P{obsid}CAX000VALERT0{str_num}.json"
+        json_path = os.path.join(self.session.path, filename)
+        dict_new_det_info['AlertType']=flag_alert[0]
+        with open(json_path, "w") as outfile:
+            json.dump(dict_new_det_info, outfile, indent=1)
+
 
 def load_source_on_position(session, cat, ra_target, dec_target):
     """

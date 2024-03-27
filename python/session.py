@@ -61,7 +61,7 @@ class Session(object):
 
         pdfs = []
         for file in os.listdir(self.path):
-            if file.endswith(".PDF"):
+            if file.endswith(".PDF") or file.endswith('.json'):
                 pdfs.append(file)
    
         output = os.path.join(self.path, f"{tarfile_prefix}.tgz")

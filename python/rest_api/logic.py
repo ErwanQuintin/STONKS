@@ -10,6 +10,7 @@ from astropy.table import Table
 from astropy.time import Time
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+import json
 
 from core.STONKS_PreComputed_Position_alert import transient_alert
 from session import Session
@@ -29,7 +30,12 @@ class ParamHolder:
         self.src_num = None
         self.pn_offax = None
         self.m1_offax = None
-        self.m2_offax = None 
+        self.m2_offax = None
+        self.pn_detml = None
+        self.m1_detml = None
+        self.m2_detml = None
+        self.ep_detml = None
+
 
 def process_one_observation(session, queue): 
     print(f"Loading EPIC source list {session.filepath}")
@@ -135,6 +141,7 @@ def process_one_source(param_holder, observation_metadata, session):
         tab_dic_infos.append(dict_detection_info)
         for ms, dict_det_info in zip(tab_alerts,tab_dic_infos):
             ms.save_lightcurve(dict_det_info, flag_alert)
+            ms.save_json_alert(dict_det_info, flag_alert, param_holder)
             nb_alerts += 1
  
     return nb_alerts
