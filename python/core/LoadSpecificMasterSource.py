@@ -621,8 +621,11 @@ class MasterSource:
         for posy, key in zip([0.95,0.9, 0.85, 0.8],['ObsID','Date Obs','Target Name','Exposure Time']):
             t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
             bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-            t2 = ax4.text(1., posy,  str(DictUtils.get_value_by_key(dict_new_det_info, key)), horizontalalignment='right')
-            bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+            text_value = str(DictUtils.get_value_by_key(dict_new_det_info, key))
+            # escape characters not supported by Latex
+            text_value = text_value.replace("&", "\\&").replace("_", "\\_")
+            t2 = ax4.text(1., posy,  text_value, horizontalalignment='right')
+s            bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             ax4.plot([0. + bb1.width, 1. - bb2.width], [posy+0.01, posy+0.01], ls=':', c='k')
 
         for posy, key in zip(np.arange(0.5,0.75, 0.05)[::-1],['SRCNUM', 'Source RA', 'Source Dec', 'Position Error','Off-axis Angles']):
