@@ -536,9 +536,12 @@ class MasterSource:
                     # Plot the X-ray spectra of each detection, using the fluxes in various bands
                     good_indices=np.where(np.array(source.band_flux[det])>0)
                     ax2.plot(np.array(band_center[cat])[good_indices], np.array(source.band_flux[det])[good_indices] / tab_width[good_indices], c=colors[cat], lw=3)
+                    # make sure the errors to be positive
+                    yerr0 = [abs(number) for number in source.band_fluxerr[0][det]]
+                    yerr1 = [abs(number) for number in source.band_fluxerr[1][det]]
                     ax2.errorbar(band_center[cat], source.band_flux[det] / tab_width,
-                                 yerr=[source.band_fluxerr[0][det] / tab_width,
-                                       source.band_fluxerr[1][det] / tab_width],
+                                 yerr=[yerr0 / tab_width,
+                                       yerr1 / tab_width],
                                  xerr=band_half_width[cat],
                                  fmt="", c=colors[cat], alpha=0.2)
                     ax2.scatter(band_center[cat], source.band_flux[det] / tab_width, facecolor=colors[cat], marker="o",
@@ -622,10 +625,10 @@ class MasterSource:
             t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
             bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             text_value = str(DictUtils.get_value_by_key(dict_new_det_info, key))
-            # escape characters not supported by Latex
+            # escape characters not supported 
             text_value = text_value.replace("&", "\\&").replace("_", "\\_")
             t2 = ax4.text(1., posy,  text_value, horizontalalignment='right')
-s            bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+            bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             ax4.plot([0. + bb1.width, 1. - bb2.width], [posy+0.01, posy+0.01], ls=':', c='k')
 
         for posy, key in zip(np.arange(0.5,0.75, 0.05)[::-1],['SRCNUM', 'Source RA', 'Source Dec', 'Position Error','Off-axis Angles']):
