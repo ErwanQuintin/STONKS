@@ -85,7 +85,7 @@ class Session(object):
             p.start()
             result = q.get()
             p.join()
-            if result["status"] == f"failed on obs {self.obsid}":
+            if result["status"].startswith("failed"):
                 return result, 500
             
             if result["nb_alerts"] == "0":

@@ -95,7 +95,14 @@
             } else if( response.status == 404 ) {
             	alert("no variability found")
             } else {
-            	alert("Internal error: " + response.status)
+            	response.json().then(function(object) {
+            		if( 'exception' in object){
+                		alert("Internal error: " + object.exception)
+            		} else {
+            			alert("Bad Request: " + object.message)
+            		}
+            		}
+            	)
             }
         })
 	    .then(blob => {

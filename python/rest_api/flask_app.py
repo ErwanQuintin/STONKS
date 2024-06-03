@@ -10,12 +10,12 @@ from session import Session
 from cache import Cache
 
 UPLOAD_FOLDER = '/path/to/the/uploads'
-ALLOWED_EXTENSIONS = ['fit', 'fits']
+ALLOWED_EXTENSIONS = ['fit', 'fits', 'FITS', 'FIT']
 app = Flask(__name__)
 app.secret_key = "super secret key"
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024    # 1 Mb limit
   
-def allowed_file(filename):
+def allowed_file(filename):    
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -40,7 +40,7 @@ def upload_file():
                    
         result = {'status': 'failed',
                   'message': f"Prohibited filename {file.filename}"}
-        return result, 500
+        return result, 400
 
 @app.route("/stonks/doc")
 def doc():
