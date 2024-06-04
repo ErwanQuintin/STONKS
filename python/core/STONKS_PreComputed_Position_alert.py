@@ -273,6 +273,7 @@ def match_Simbad(ra_target, dec_target, pos_err):
     result_table = Simbad.query_region(SkyCoord(ra_target, dec_target,
                                                       unit=(u.deg, u.deg), frame='icrs'),
                                        radius=10*u.arcsec)
+    # Id result_table is none Simbad raises a script error (don't mind)
     if not result_table is None:
         result = result_table[0]
         if result["OTYPE"] in dic_classifier.keys():
