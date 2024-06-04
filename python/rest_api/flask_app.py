@@ -35,13 +35,8 @@ def upload_file():
             result = {'status': 'ko',
                       'message': 'No selected file'}
             return result, 400
-        if file and allowed_file(file.filename):
-            return Session(file).process_observation()
+        return Session(file).process_observation()
                    
-        result = {'status': 'failed',
-                  'message': f"Prohibited filename {file.filename}"}
-        return result, 400
-
 @app.route("/stonks/doc")
 def doc():
 

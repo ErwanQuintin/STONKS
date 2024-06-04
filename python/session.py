@@ -32,18 +32,21 @@ class Session(object):
         self.filepath  = os.path.join(self.path, self.filename)
         print(f"save {self.filename} in {self.filepath}")
         file.save(self.filepath)
-        self._set_obsid()
-        
-        
+    
     def _set_obsid(self):
         """it is important to set the OBSid within the session make sure
         the is no overlap with other request since process_one_observation is not
         thread safe at all
         """
-        raw_data = fits.open(self.filepath, memmap=True)  
-        obs_information = raw_data[0].header
-        self.obsid = str(obs_information['OBS_ID'])
+        try :
+            raw_data = fits.open(self.filepath, memmap=True)  
+            obs_information = raw_data[0].header
+            self.obsid = str(obs_information['OBS_ID'])
+        except:
+            return False
         raw_data.close()
+        return True
+
         
         
     def remove_session_directory(self):
@@ -79,6 +82,12 @@ class Session(object):
         local import to avid circular imports Session<->logic
         """
         try:
+            
+            if not self._set_obsid():
+                result = {'status': "failed",
+                  'message': f"{self.filename} does not look like a OBSMLI fits file"}
+                return result, 400
+
             from rest_api.logic import process_one_observation
             q = Queue()
             p = Process(target=process_one_observation, args=(self, q))
