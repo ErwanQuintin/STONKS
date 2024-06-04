@@ -11,7 +11,7 @@ from werkzeug.datastructures import FileStorage
 if __name__ == '__main__':
     obsid = "0804670301"
     filepath = os.path.join(PATHTO.master_sources, f"P{obsid}EPX000OBSMLI0000.FIT")
-    Session.clean_up(1)
+    #Session.clean_up(1)
     
     my_file = FileStorage(
         stream=open(filepath, "rb"),

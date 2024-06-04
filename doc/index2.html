@@ -42,14 +42,14 @@
 				<div class="file-area">
 					<div class="row top">
 						<div class="col-md-9">
-							<p>Or upload a file with a list of coordinates</p>
+							<p>Upload an EPIC source list (*EP*OBSMLI* file)</p>
 						</div>
-						<div class="col-md-3 text-right"
+						<!--<div class="col-md-3 text-right"
 							style="padding-top: 3px; padding-right: 16px">
 							<img src="/stonks/static/images/index/showquery.png" /> <a
 								class="sql" data-querylang-button href="javascript:void(0);">
 								File format </a>
-						</div>
+						</div>-->
 					</div>
 
 					<div class="input-group">
@@ -95,7 +95,14 @@
             } else if( response.status == 404 ) {
             	alert("no variability found")
             } else {
-            	alert("Internal error: " + response.status)
+            	response.json().then(function(object) {
+            		if( 'exception' in object){
+                		alert("Internal error: " + object.exception)
+            		} else {
+            			alert("Bad Request: " + object.message)
+            		}
+            		}
+            	)
             }
         })
 	    .then(blob => {
@@ -164,6 +171,16 @@
 
 						<div class="row news">
 							<div class="col-sm-2 date">
+								<div class="big">2</div>
+								<div class="small">
+									<span style="text-transform: capitalize">june</span> 2024
+								</div>
+							</div>
+							<div class="col-sm-10">Support odd target names - report internal errors to users</div>
+						</div>
+						<br>
+						<div class="row news">
+							<div class="col-sm-2 date">
 								<div class="big">20</div>
 								<div class="small">
 									<span style="text-transform: capitalize">nov</span> 2023
@@ -174,91 +191,32 @@
 
 						<div class="page-header"></div>
 
-						<div class="row news">
-							<div class="col-sm-2 date">
-								<div class="big">03</div>
-								<div class="small">
-									<span style="text-transform: capitalize">apr</span> 2023
-								</div>
-							</div>
-							<div class="col-sm-10">
-								New version of FLIX available! Changes include:
-								<ul>
-									<li>performance improvements (processing time divided by
-										2)
-										<li>possibility to request the server using a file
-									
-									<li>several improvements to the interface to improve user
-										experience
-									
-									<li>bug fixes
-								
-								</ul>
-							</div>
-						</div>
-						
-						<div class="page-header"></div>
-
-						<div class="row news">
-											<div class="col-sm-2 date">
-								<div class="big">28</div>
-								<div class="small">
-									<span style="text-transform: capitalize">jul</span>
-									2022
-								</div>
-							</div>
-							<div class="col-sm-10">
-								The 4XMM-DR12 catalog release has been added to the website.
-								Read more about it <a
-													href="http://xmmssc.irap.omp.eu/Catalogue/4XMM-DR12/4XMM_DR12.html"
-													target="_blank">here</a>. The website is still in early beta
-								version !
-							</div>
-						</div>
-						<div class="page-header"></div>
-
-						<div class="row news">
-							<div class="col-sm-2 date">
-								<div class="big">12</div>
-								<div class="small">
-									<span style="text-transform: capitalize">apr</span>
-									2022
-								</div>
-							</div>
-							<div class="col-sm-10">Release of a beta version of FLIX
-								sensitivity estimator</div>
-						</div>
-						<div class="page-header"></div>
-
 					
-									</div>
+					</div>
 				</div>
 				<div class="col-sm-5">
 					<div class="main-overview">
 						<h1>WEBSITE OVERVIEW</h1>
-						<p>This website provides experimental access to the FLIX
-							sensitivity estimator for XMM-Newton data. It is provided by the
-							XMM-Newton Survey Science Centre at IRAP and is based on 4XMM
-							Data Release 12 data provided by the XMM-Newton Survey Science
-							Centre Consortium.</p>
-						<p>What FLIX does: if you provide a position of interest on
-							the sky, FLIX scans the public data products from XMM-Newton to
-							determine whether each point was observed. If so FLIX:</p>
+						<p>This website provides experimental access to the STONKS long-term
+						        variability estimator for XMM-Newton data. It is provided by the
+						        ACDS in Strasbourg, and is based on a compilation of multi-mission
+						        archival X-ray data.</p>
+						<p>What STONKS does: if you provide an EPIC source list (*EP*OBSMLI* file), it
+						        will compare their positions and fluxes to any known archival X-ray data,
+						        including prior upper limits. If such data is available, STONKS:</p>
 						<ul>
-							<li>Estimates a detection threshold to the X-ray flux at
-								that point in various energy bands,
+							<li>Estimates the long-term variability of the source,
 							
-							<li>Provides a crude estimate of the actual flux within a
-								circle centred on that point
+							<li>Builds a multi-instrument lightcurve,
 							
-							<li>Scans the 4XMM catalogue listing any detections within 2
-								arc-minutes, and display an X-ray image centred on the point.
+							<li>Builds approximate multi-instrument spectra, using the available
+							    band photometry for each mission.
 						
 						</ul>
 						<p>
-							Results are then returned in the form of a table and as a
-							downloadable FITS file. For further information on input and
-							outputs, see the online <a href='/docs'>documentation</a>
+						  Results are then returned in the form of a tar ball, containing one PDF
+						  file for each variable source in the observation. For further information
+						  on the methods and approximations, see the online <a href='/docs'>documentation</a>.
 						
 						<p>Please note that it is in its early beta stage...</p>
 					</div>

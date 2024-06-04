@@ -268,17 +268,23 @@ def match_Simbad(ra_target, dec_target, pos_err):
                       'WD*': 'CompactObject', 'SN': 'CompactObject', 'gammaBurst': 'CompactObject',
                       'Candidate_XB*': 'CompactObject', 'Candidate_BH': 'CompactObject', 'NS': 'CompactObject',
                       'Candidate_NS': 'CompactObject', 'Neutron*': 'CompactObject', 'Candidate_CV*': 'CompactObject',
-                      'Candidate_Nova': 'CompactObject'}
+                      'Candidate_Nova': 'CompactObject','HighMassXBin':'CompactObject'}
 
     result_table = Simbad.query_region(SkyCoord(ra_target, dec_target,
                                                       unit=(u.deg, u.deg), frame='icrs'),
                                        radius=10*u.arcsec)
-    if result_table != None:
+    # Id result_table is none Simbad raises a script error (don't mind)
+    if not result_table is None:
         result = result_table[0]
-        simbad_type = dic_classifier[result["OTYPE"]]
+        if result["OTYPE"] in dic_classifier.keys():
+            simbad_type = dic_classifier[result["OTYPE"]]
+        else:
+            simbad_type = "Unknown"
+        simbad_name = result["MAIN_ID"]
     else:
         simbad_type = ""
-    return simbad_type
+        simbad_name = ""
+    return simbad_type, simbad_name
 
 def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr, date, var_flag, ul=True):
     """
@@ -308,7 +314,7 @@ def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_e
         #flux=tab_last[0] #Temporary test, should send alerts only if already archival variable
         mini_hist = np.nanmin((tab_min[index_impacted_master_sources[0]],tab_ul[index_impacted_master_sources[0]]))
         if flux < flux_err:
-            low_flux = flux
+            low_flux = 0
         else:
             low_flux = flux-flux_err
         var_ratio = np.nanmax((low_flux/mini_hist, tab_max[index_impacted_master_sources[0]]/(flux+flux_err)))
@@ -320,7 +326,8 @@ def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_e
             new_ms.xmm_ul, new_ms.xmm_ul_dates = old_ms.xmm_ul,old_ms.xmm_ul_dates
             new_ms.slew_ul, new_ms.slew_ul_dates = old_ms.slew_ul,old_ms.slew_ul_dates
             new_ms.has_short_term_var= (old_ms.has_short_term_var or var_flag)
-            new_ms.simbad_type=old_ms.simbad_type[0]
+            # new_ms.simbad_type=old_ms.simbad_type[0]
+            new_ms.simbad_type, new_ms.simbad_name = match_Simbad(ra_target, dec_target, pos_err)
             new_ms.var_ratio=var_ratio
             tab_alerts.append(new_ms)
             if var_ratio > tab_max[index_impacted_master_sources[0]]/mini_hist:
@@ -332,8 +339,8 @@ def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_e
                 flag_alerts.append('Past Variability')
             info_source.append(var_ratio)
             info_source.append(new_ms.simbad_type)
+            info_source.append(new_ms.simbad_name)
     elif flag_known_ms!=-1: #We require the archival matching to not be ambiguous. If it was ambiguous, bad idea to compute the UpperLimits
-        #In the future: match Simbad here for the new sources only
         if ul:
             try:
                 xmm_ul, xmm_ul_dates, slew_ul, slew_ul_dates = compute_upper_limit(ra_target, dec_target, flux, date)
@@ -348,11 +355,12 @@ def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_e
                         new_ms.slew_ul = slew_ul
                         new_ms.slew_ul_dates = slew_ul_dates
                         new_ms.var_ratio = (flux-flux_err)/np.nanmin(xmm_ul+slew_ul)
-                        new_ms.simbad_type = match_Simbad(ra_target,dec_target,pos_err)
+                        new_ms.simbad_type, new_ms.simbad_name = match_Simbad(ra_target,dec_target,pos_err)
                         tab_alerts.append(new_ms)
                         flag_alerts.append('First Detection')
                         info_source.append((flux-flux_err)/np.nanmin(xmm_ul+slew_ul))
                         info_source.append(new_ms.simbad_type)
+                        info_source.append(new_ms.simbad_name)
             except:
                 pass
         elif var_flag:
@@ -361,10 +369,13 @@ def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_e
             new_ms = MasterSource(session, - 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
             new_ms.has_short_term_var = var_flag
             new_ms.simbad_type = "Not Checked"
+            new_ms.simbad_name = "Not Checked"
             tab_alerts.append(new_ms)
             flag_alerts.append('Short-term Variable Detection')
             info_source.append(0)
             info_source.append(new_ms.simbad_type)
+            info_source.append(new_ms.simbad_name)
+
 
     return tab_alerts, flag_alerts, info_source
 
