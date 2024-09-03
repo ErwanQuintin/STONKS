@@ -621,11 +621,20 @@ class MasterSource:
         ax4.set_xlim((0,1))
         ax4.set_ylim((0,1))
         r = fig.canvas.get_renderer()
-        for posy, key in zip([0.95,0.9, 0.85, 0.8],['ObsID','Date Obs','Target Name','Exposure Time']):
+        # for posy, key in zip([0.95,0.9, 0.85, 0.8],['ObsID','Date Obs','Target Name','Exposure Time']):
+        #     t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
+        #     bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        #     text_value = str(DictUtils.get_value_by_key(dict_new_det_info, key))
+        #     # escape characters not supported
+        #     text_value = text_value.replace("&", "\\&").replace("_", "\\_")
+        #     t2 = ax4.text(1., posy,  text_value, horizontalalignment='right')
+        #     bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        #     ax4.plot([0. + bb1.width, 1. - bb2.width], [posy+0.01, posy+0.01], ls=':', c='k')
+        for posy, key in zip([0.9, 0.85, 0.8],['ObsID','Date Obs','Exposure Time']):
             t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
             bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             text_value = str(DictUtils.get_value_by_key(dict_new_det_info, key))
-            # escape characters not supported 
+            # escape characters not supported
             text_value = text_value.replace("&", "\\&").replace("_", "\\_")
             t2 = ax4.text(1., posy,  text_value, horizontalalignment='right')
             bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
@@ -730,7 +739,7 @@ class MasterSource:
         dict_new_det_info['LastFluxErr'] = f'{param_holder.flux_err:.1e}'
         last_soft, last_hard = np.nansum(param_holder.band_flux[0][:3]), np.nansum(param_holder.band_flux[0][3:])
         dict_new_det_info['LastHR']=f'{(last_hard-last_soft)/(last_hard+last_soft):.2f}'
-        dict_new_det_info['ShortTermVar']=f'{self.has_short_term_var}'
+        dict_new_det_info['ArchivalShortTermVar']=f'{self.has_short_term_var}'
         if self.simbad_type.strip() !='':
             dict_new_det_info['Simbad']= f'{self.simbad_type.strip()} ({self.simbad_name.strip()})'
         else:

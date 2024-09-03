@@ -42,7 +42,9 @@ def process_one_observation(session, queue):
     try:
         
         raw_data = fits.open(session.filepath, memmap=True)
-    
+        min_off_axis_angle = 2 #Minimum accepted off-axis angle in arcmin, to reject the source
+        min_det_ml = 10 #Minimum accepted detection likelihood
+
         #Building Observation information using OBSMLI header
         dict_observation_metadata = {}
         obs_information = raw_data[0].header
@@ -57,10 +59,13 @@ def process_one_observation(session, queue):
 
         sources_raw = raw_data[1].data
         sources_raw = Table(sources_raw)
-        indices_not_spurious = (((sources_raw["PN_DET_ML"]>10) | (np.isnan(sources_raw["PN_DET_ML"]))) &
-                                        ((sources_raw["M1_DET_ML"]>10) | (np.isnan(sources_raw["M1_DET_ML"]))) &
-                                        ((sources_raw["M2_DET_ML"]>10) | (np.isnan(sources_raw["M2_DET_ML"]))))
-        sources_raw = sources_raw[(sources_raw["EP_EXT_ML"]<6) & indices_not_spurious]
+        indices_not_spurious = (((sources_raw["PN_DET_ML"]>min_det_ml) | (np.isnan(sources_raw["PN_DET_ML"]))) &
+                                        ((sources_raw["M1_DET_ML"]>min_det_ml) | (np.isnan(sources_raw["M1_DET_ML"]))) &
+                                        ((sources_raw["M2_DET_ML"]>min_det_ml) | (np.isnan(sources_raw["M2_DET_ML"]))))
+        indices_not_target = (((sources_raw["PN_OFFAX"] > min_off_axis_angle) | (np.isnan(sources_raw["PN_OFFAX"]))) &
+                                ((sources_raw["M1_OFFAX"] > min_off_axis_angle) | (np.isnan(sources_raw["M1_OFFAX"]))) &
+                                ((sources_raw["M2_OFFAX"] > min_off_axis_angle) | (np.isnan(sources_raw["M2_OFFAX"]))))
+        sources_raw = sources_raw[(sources_raw["EP_EXT_ML"]<6) & indices_not_spurious & indices_not_target]
         tab_band_fluxes = [[list(line)] for line in sources_raw["EP_1_FLUX","EP_2_FLUX","EP_3_FLUX","EP_4_FLUX","EP_5_FLUX"]]
         tab_band_fluxerr = []
         nb_src = 0
@@ -118,9 +123,9 @@ def process_one_source(param_holder, observation_metadata, session):
     dict_detection_info['SRCNUM'] = str(param_holder.src_num)
     dict_detection_info['Off-axis Angles'] = f"PN: {param_holder.pn_offax:.1f}', M1: {param_holder.m1_offax:.1f}', M2: {param_holder.m2_offax:.1f}'"
     dict_detection_info['Instruments DetML'] = f'PN: {param_holder.pn_detml:.1f}, M1: {param_holder.m1_detml:.1f}, M2: {param_holder.m2_detml:.1f}, EP: {param_holder.ep_detml:.1f}'
-    c=SkyCoord(param_holder.ra*u.deg,param_holder.dec*u.deg).to_string('hmsdms', sep=":")
-    dict_detection_info['Source RA']= f'{np.round(param_holder.ra, 2)}   /   {c.split(" ")[0].split(".")[0]}'
-    dict_detection_info['Source Dec']= f'{np.round(param_holder.dec, 2)}   /   {c.split(" ")[1].split(".")[0]}'
+    c=SkyCoord(param_holder.ra*u.deg,param_holder.dec*u.deg).to_string('hmsdms', sep=":", precision=1)
+    dict_detection_info['Source RA']= f'{np.round(param_holder.ra, 2)}   /   {c.split(" ")[0]}'
+    dict_detection_info['Source Dec']= f'{np.round(param_holder.dec, 2)}   /   {c.split(" ")[1]}'
     dict_detection_info['Position Error']=f'{param_holder.pos_err:.2f}"'
 
     result_alert, flag_alert, info_source = transient_alert(session,
