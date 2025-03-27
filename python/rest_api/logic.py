@@ -8,6 +8,7 @@ import numpy as np
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
+from astropy import wcs
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 import json
@@ -35,12 +36,23 @@ class ParamHolder:
         self.m1_detml = None
         self.m2_detml = None
         self.ep_detml = None
+        self.choice_pi = None
+        self.publishable = None
 
 
-def process_one_observation(session, queue): 
+def process_one_observation(session, queue, filename_sumsas, filename_image):
     print(f"Loading EPIC source list {session.filepath}")
     try:
-        
+        #Loads the choice of the PI regarding publication of data. Used to create a flag for publication
+        raw_data = fits.open(filename_sumsas, memmap=True)
+        choice_PI = raw_data[0].header['PLACEHOLDER_NAME'] #Placeholder for the Keyword
+
+        #Loads the EPIC image
+        raw_data = fits.open(filename_image, memmap=True)
+        image_wcs = wcs.WCS(raw_data[0].header)
+        image_data = raw_data[0].data
+
+        #Loads the data from the sources
         raw_data = fits.open(session.filepath, memmap=True)
         min_off_axis_angle = 2 #Minimum accepted off-axis angle in arcmin, to reject the source
         min_det_ml = 10 #Minimum accepted detection likelihood
@@ -65,7 +77,12 @@ def process_one_observation(session, queue):
         indices_not_target = (((sources_raw["PN_OFFAX"] > min_off_axis_angle) | (np.isnan(sources_raw["PN_OFFAX"]))) &
                                 ((sources_raw["M1_OFFAX"] > min_off_axis_angle) | (np.isnan(sources_raw["M1_OFFAX"]))) &
                                 ((sources_raw["M2_OFFAX"] > min_off_axis_angle) | (np.isnan(sources_raw["M2_OFFAX"]))))
-        sources_raw = sources_raw[(sources_raw["EP_EXT_ML"]<6) & indices_not_spurious & indices_not_target]
+        indices_not_target=indices_not_target[(sources_raw["EP_EXT_ML"]<6) & indices_not_spurious]
+
+        #We assume the choice_pi is going to be one of three (0,1,2): nothing publishable, just serendipitous, or all
+        list_publishable = [(choice_PI==2)|((choice_PI==1)&bool_serend) for bool_serend in indices_not_target]
+
+        sources_raw = sources_raw[(sources_raw["EP_EXT_ML"]<6) & indices_not_spurious]
         tab_band_fluxes = [[list(line)] for line in sources_raw["EP_1_FLUX","EP_2_FLUX","EP_3_FLUX","EP_4_FLUX","EP_5_FLUX"]]
         tab_band_fluxerr = []
         nb_src = 0
@@ -73,11 +90,12 @@ def process_one_observation(session, queue):
         for line in sources_raw["ERR_EP_1_FLUX","ERR_EP_2_FLUX","ERR_EP_3_FLUX","ERR_EP_4_FLUX","ERR_EP_5_FLUX"]:
             tab_band_fluxerr.append([[list(line)], [list(line)]])
     
-        for ra, dec, pos_err, flux, flux_err, band_flux, band_fluxerr, src_num, pn_offax, m1_offax, m2_offax, pn_detml, m1_detml, m2_detml, ep_detml\
+        for (ra, dec, pos_err, flux, flux_err, band_flux, band_fluxerr, src_num, pn_offax, m1_offax, m2_offax,
+             pn_detml, m1_detml, m2_detml, ep_detml, publishable)\
                 in zip(sources_raw["RA"],sources_raw["DEC"],sources_raw["RADEC_ERR"], sources_raw["EP_TOT_FLUX"],\
                         sources_raw["ERR_EP_TOT_FLUX"],tab_band_fluxes, tab_band_fluxerr, sources_raw["SRC_NUM"],
                     sources_raw["PN_OFFAX"],sources_raw["M1_OFFAX"],sources_raw["M2_OFFAX"], sources_raw["PN_DET_ML"],
-                       sources_raw["M1_DET_ML"],sources_raw["M2_DET_ML"],sources_raw["EP_DET_ML"]):
+                       sources_raw["M1_DET_ML"],sources_raw["M2_DET_ML"],sources_raw["EP_DET_ML"],list_publishable):
             param_holder = ParamHolder()
             param_holder.ra = ra 
             param_holder.dec = dec
@@ -94,9 +112,11 @@ def process_one_observation(session, queue):
             param_holder.m1_detml = m1_detml
             param_holder.m2_detml = m2_detml
             param_holder.ep_detml = ep_detml
+            param_holder.choice_pi = choice_PI
+            param_holder.publishable = publishable
 
             print (f"Processing source {src_num}")
-            nb_alerts += process_one_source(param_holder, dict_observation_metadata, session) 
+            nb_alerts += process_one_source(param_holder, dict_observation_metadata, session, image_data, image_wcs)
             nb_src += 1
         if queue is not None:
             queue.put({"status": "succeed",
@@ -111,7 +131,7 @@ def process_one_observation(session, queue):
             queue.put({"status": "failed", "exception": f"{str(exp)}"})   
         
          
-def process_one_source(param_holder, observation_metadata, session):
+def process_one_source(param_holder, observation_metadata, session, image_data, image_wcs):
     tab_alerts=[]
     tab_dic_infos = []
     nb_alerts = 0
@@ -124,8 +144,8 @@ def process_one_source(param_holder, observation_metadata, session):
     dict_detection_info['Off-axis Angles'] = f"PN: {param_holder.pn_offax:.1f}', M1: {param_holder.m1_offax:.1f}', M2: {param_holder.m2_offax:.1f}'"
     dict_detection_info['Instruments DetML'] = f'PN: {param_holder.pn_detml:.1f}, M1: {param_holder.m1_detml:.1f}, M2: {param_holder.m2_detml:.1f}, EP: {param_holder.ep_detml:.1f}'
     c=SkyCoord(param_holder.ra*u.deg,param_holder.dec*u.deg).to_string('hmsdms', sep=":", precision=1)
-    dict_detection_info['Source RA']= f'{np.round(param_holder.ra, 2)}   /   {c.split(" ")[0]}'
-    dict_detection_info['Source Dec']= f'{np.round(param_holder.dec, 2)}   /   {c.split(" ")[1]}'
+    dict_detection_info['Source RA']= f'{np.round(param_holder.ra, 3)}   /   {c.split(" ")[0]}'
+    dict_detection_info['Source Dec']= f'{np.round(param_holder.dec, 3)}   /   {c.split(" ")[1]}'
     dict_detection_info['Position Error']=f'{param_holder.pos_err:.2f}"'
 
     result_alert, flag_alert, info_source = transient_alert(session,
@@ -145,7 +165,7 @@ def process_one_source(param_holder, observation_metadata, session):
         tab_alerts += result_alert
         tab_dic_infos.append(dict_detection_info)
         for ms, dict_det_info in zip(tab_alerts,tab_dic_infos):
-            ms.save_lightcurve(dict_det_info, flag_alert)
+            ms.save_lightcurve(dict_det_info, flag_alert, image_data, image_wcs)
             ms.save_json_alert(dict_det_info, flag_alert, param_holder)
             nb_alerts += 1
  

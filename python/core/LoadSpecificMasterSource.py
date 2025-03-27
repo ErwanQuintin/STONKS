@@ -20,9 +20,12 @@ import numpy as np
 import matplotlib
 #matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
+from astropy import wcs
+from astropy.coordinates import SkyCoord
 import astropy.units as u
 from astropy.coordinates import Longitude, Latitude, Angle
 from astroquery.hips2fits import hips2fits
@@ -491,7 +494,7 @@ class MasterSource:
         self.simbad_name=''
 
 
-    def save_lightcurve(self,dict_new_det_info, flag_alert):
+    def save_lightcurve(self,dict_new_det_info, flag_alert, image_data, image_wcs):
         """
         Produces a multi-panel plot with most of the useful multi-instrument information about the source, saving it in
          a PDF file. From left to right and top to bottom:
@@ -549,40 +552,52 @@ class MasterSource:
                 ax2.errorbar([],[],[],[],fmt='o', markeredgecolor='gray', c=colors[cat],label=cat)
 
         try:
-            size = 1500
-            fov = 2 * u.arcmin
-            result = hips2fits.query(
-                hips='CDS/P/DSS2/color',
-                width=size,
-                height=size,
-                ra=Longitude(float(dict_new_det_info['Source RA'].split('/')[0]) * u.deg),
-                dec=Latitude(float(dict_new_det_info['Source Dec'].split('/')[0]) * u.deg),
-                fov=Angle(fov),
-                projection="AIT",
-                get_query_payload=False,
-                format="jpg",
-                min_cut=0.5,
-                max_cut=99.5
-            )
-            im = ax3.imshow(result)
-            positions_x = [0.1 * size, 0.35 * size]
-            positions_y = [0.15 * size, 0.15 * size]
-            text_position_x = 0.225 * size
-            text_position_y = 0.1 * size
-            dss_position_x = 0.05 * size
-            dss_position_y = 0.95 * size
-            ax3.plot(positions_x, positions_y, c="w",lw=3)
-            ax3.scatter(positions_x, positions_y, c="w", marker="o", s=20)
-            scaletext = 30
-            ax3.text(text_position_x, text_position_y, f'{scaletext}"', c="w", fontsize=20,
-                     horizontalalignment='center')
-            t=ax3.text(dss_position_x, dss_position_y, 'DSS colored (400-600 nm)', c="w", fontsize=20,
-                     horizontalalignment='left',)
-            t.set_bbox(dict(facecolor='k',alpha=0.5,edgecolor='k'))
+            skyfov = 4 * u.arcmin
+
+            skyposition = SkyCoord(self.ra * u.deg, self.dec * u.deg)
+            pixposition = wcs.utils.skycoord_to_pixel(skyposition, image_wcs)
+            pixelsize = wcs.utils.proj_plane_pixel_scales(image_wcs)[0]
+            pixelfov = (skyfov.to(u.deg) / pixelsize).value
+            ax3.imshow(np.where(image_data > 0, image_data, 1), norm=LogNorm())
+            ax3.ylim((pixposition[1] - (pixelfov / 2)), (pixposition[1] + (pixelfov / 2)))
+            ax3.xlim((pixposition[0] - (pixelfov / 2)), (pixposition[0] + (pixelfov / 2)))
+            ax3.scatter([pixposition[0]], [pixposition[1]], marker='+', c='r')
             ax3.axis("off")
-            c1 = plt.Circle((size // 2, size // 2), size * 3 * float(dict_new_det_info['Position Error'][:-1]) / (fov.to(u.arcsec).value), color='r',
-                            fill=False)
-            ax3.add_patch(c1)
+
+            #size = 1500
+            #fov = 2 * u.arcmin
+            #result = hips2fits.query(
+            #    hips='CDS/P/DSS2/color',
+            #    width=size,
+            ##    height=size,
+            #    ra=Longitude(float(dict_new_det_info['Source RA'].split('/')[0]) * u.deg),
+            #    dec=Latitude(float(dict_new_det_info['Source Dec'].split('/')[0]) * u.deg),
+            #    fov=Angle(fov),
+            #    projection="AIT",
+            #    get_query_payload=False,
+            #    format="jpg",
+            #    min_cut=0.5,
+            #    max_cut=99.5
+            #)
+            #im = ax3.imshow(result)
+            #positions_x = [0.1 * size, 0.35 * size]
+            #ositions_y = [0.15 * size, 0.15 * size]
+            #text_position_x = 0.225 * size
+            #text_position_y = 0.1 * size
+            #dss_position_x = 0.05 * size
+            #dss_position_y = 0.95 * size
+            #ax3.plot(positions_x, positions_y, c="w",lw=3)
+            #ax3.scatter(positions_x, positions_y, c="w", marker="o", s=20)
+            #scaletext = 30
+            #ax3.text(text_position_x, text_position_y, f'{scaletext}"', c="w", fontsize=20,
+            #         horizontalalignment='center')
+            #t=ax3.text(dss_position_x, dss_position_y, 'DSS colored (400-600 nm)', c="w", fontsize=20,
+            #         horizontalalignment='left',)
+            #t.set_bbox(dict(facecolor='k',alpha=0.5,edgecolor='k'))
+            #ax3.axis("off")
+            #c1 = plt.Circle((size // 2, size // 2), size * 3 * float(dict_new_det_info['Position Error'][:-1]) / (fov.to(u.arcsec).value), color='r',
+            #                fill=False)
+            #ax3.add_patch(c1)
         except:
             ax3.text(0.5,0.5, "Issues connecting to CDS server")
             ax3.axis("off")
@@ -615,6 +630,7 @@ class MasterSource:
             secax.set_ylabel(r'$L_{\nu}$ ($erg.s^{-1})$')
 
         #Adding the metadata
+        #TODO : add the PI choice as a text. We need to think of how to say it
         obsid= DictUtils.get_value_by_key(dict_new_det_info, "ObsID")
         scr_num =  DictUtils.get_value_by_key(dict_new_det_info, "SRCNUM")
 
