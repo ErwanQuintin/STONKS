@@ -144,9 +144,11 @@ def process_one_source(param_holder, observation_metadata, session, image_data, 
     dict_detection_info['Off-axis Angles'] = f"PN: {param_holder.pn_offax:.1f}', M1: {param_holder.m1_offax:.1f}', M2: {param_holder.m2_offax:.1f}'"
     dict_detection_info['Instruments DetML'] = f'PN: {param_holder.pn_detml:.1f}, M1: {param_holder.m1_detml:.1f}, M2: {param_holder.m2_detml:.1f}, EP: {param_holder.ep_detml:.1f}'
     c=SkyCoord(param_holder.ra*u.deg,param_holder.dec*u.deg).to_string('hmsdms', sep=":", precision=1)
-    dict_detection_info['Source RA']= f'{np.round(param_holder.ra, 3)}   /   {c.split(" ")[0]}'
-    dict_detection_info['Source Dec']= f'{np.round(param_holder.dec, 3)}   /   {c.split(" ")[1]}'
+    dict_detection_info['Source RA']= f'{np.round(param_holder.ra, 4)}   /   {c.split(" ")[0]}'
+    dict_detection_info['Source Dec']= f'{np.round(param_holder.dec, 4)}   /   {c.split(" ")[1]}'
     dict_detection_info['Position Error']=f'{param_holder.pos_err:.2f}"'
+    dict_detection_info['ChoicePI']=f'{param_holder.choice_pi}'
+    dict_detection_info['Publishable']=f'{param_holder.publishable}'
 
     result_alert, flag_alert, info_source = transient_alert(session,
                                    session.obsid,

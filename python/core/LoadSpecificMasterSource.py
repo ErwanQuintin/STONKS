@@ -551,56 +551,29 @@ class MasterSource:
                                 edgecolor='gray', zorder=1)
                 ax2.errorbar([],[],[],[],fmt='o', markeredgecolor='gray', c=colors[cat],label=cat)
 
-        try:
-            skyfov = 4 * u.arcmin
+        #Plot the X-ray image
+        skyfov = 4 * u.arcmin
+        skyposition = SkyCoord(self.ra * u.deg, self.dec * u.deg)
+        pixposition = wcs.utils.skycoord_to_pixel(skyposition, image_wcs)
+        pixelsize = wcs.utils.proj_plane_pixel_scales(image_wcs)[0]
+        pixelfov = (skyfov.to(u.deg) / pixelsize).value
 
-            skyposition = SkyCoord(self.ra * u.deg, self.dec * u.deg)
-            pixposition = wcs.utils.skycoord_to_pixel(skyposition, image_wcs)
-            pixelsize = wcs.utils.proj_plane_pixel_scales(image_wcs)[0]
-            pixelfov = (skyfov.to(u.deg) / pixelsize).value
-            ax3.imshow(np.where(image_data > 0, image_data, 1), norm=LogNorm())
-            ax3.ylim((pixposition[1] - (pixelfov / 2)), (pixposition[1] + (pixelfov / 2)))
-            ax3.xlim((pixposition[0] - (pixelfov / 2)), (pixposition[0] + (pixelfov / 2)))
-            ax3.scatter([pixposition[0]], [pixposition[1]], marker='+', c='r')
-            ax3.axis("off")
+        imagecropped = image_data[int(pixposition[1] - (pixelfov / 2)):int(pixposition[1] + (pixelfov / 2)),
+                                  int(pixposition[0] - (pixelfov / 2)):int(pixposition[0] + (pixelfov / 2))]
+        ax3.imshow(np.where(imagecropped > 0, imagecropped, 1), norm=LogNorm(),cmap='cmr.ocean',origin='lower')
+        ax3.scatter([pixelfov / 2], [pixelfov / 2], marker='+', c='r')
+        ax3.axis("off")
 
-            #size = 1500
-            #fov = 2 * u.arcmin
-            #result = hips2fits.query(
-            #    hips='CDS/P/DSS2/color',
-            #    width=size,
-            ##    height=size,
-            #    ra=Longitude(float(dict_new_det_info['Source RA'].split('/')[0]) * u.deg),
-            #    dec=Latitude(float(dict_new_det_info['Source Dec'].split('/')[0]) * u.deg),
-            #    fov=Angle(fov),
-            #    projection="AIT",
-            #    get_query_payload=False,
-            #    format="jpg",
-            #    min_cut=0.5,
-            #    max_cut=99.5
-            #)
-            #im = ax3.imshow(result)
-            #positions_x = [0.1 * size, 0.35 * size]
-            #ositions_y = [0.15 * size, 0.15 * size]
-            #text_position_x = 0.225 * size
-            #text_position_y = 0.1 * size
-            #dss_position_x = 0.05 * size
-            #dss_position_y = 0.95 * size
-            #ax3.plot(positions_x, positions_y, c="w",lw=3)
-            #ax3.scatter(positions_x, positions_y, c="w", marker="o", s=20)
-            #scaletext = 30
-            #ax3.text(text_position_x, text_position_y, f'{scaletext}"', c="w", fontsize=20,
-            #         horizontalalignment='center')
-            #t=ax3.text(dss_position_x, dss_position_y, 'DSS colored (400-600 nm)', c="w", fontsize=20,
-            #         horizontalalignment='left',)
-            #t.set_bbox(dict(facecolor='k',alpha=0.5,edgecolor='k'))
-            #ax3.axis("off")
-            #c1 = plt.Circle((size // 2, size // 2), size * 3 * float(dict_new_det_info['Position Error'][:-1]) / (fov.to(u.arcsec).value), color='r',
-            #                fill=False)
-            #ax3.add_patch(c1)
-        except:
-            ax3.text(0.5,0.5, "Issues connecting to CDS server")
-            ax3.axis("off")
+        x0, y0 = 0, 0
+        positions_x = [x0 + (0.25 * pixelfov), x0 + (0.5 * pixelfov)]
+        positions_y = [y0 + (0.15 * pixelfov), y0 + (0.15 * pixelfov)]
+        text_position_x = x0 + (0.38 * pixelfov)
+        text_position_y = y0 + (0.07 * pixelfov)
+        ax3.plot(positions_x, positions_y, c="w",lw=3)
+        ax3.scatter(positions_x, positions_y, c="w", marker="o", s=20)
+        scaletext = int(skyfov.value/4)
+        ax3.text(text_position_x, text_position_y, f"{scaletext}'", c="w", fontsize=20,
+                 horizontalalignment='center')
 
         #ax1.tick_params(axis='x', rotation=45)
         ax1.set_title("Long-term lightcurve (0.2-12 keV)")
@@ -629,24 +602,23 @@ class MasterSource:
             secax = ax2.secondary_yaxis('right', functions=second_axis_func)
             secax.set_ylabel(r'$L_{\nu}$ ($erg.s^{-1})$')
 
-        #Adding the metadata
-        #TODO : add the PI choice as a text. We need to think of how to say it
+        #Adding the metadata on the fourth panel
         obsid= DictUtils.get_value_by_key(dict_new_det_info, "ObsID")
         scr_num =  DictUtils.get_value_by_key(dict_new_det_info, "SRCNUM")
 
         ax4.set_xlim((0,1))
         ax4.set_ylim((0,1))
         r = fig.canvas.get_renderer()
-        # for posy, key in zip([0.95,0.9, 0.85, 0.8],['ObsID','Date Obs','Target Name','Exposure Time']):
-        #     t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
-        #     bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        #     text_value = str(DictUtils.get_value_by_key(dict_new_det_info, key))
-        #     # escape characters not supported
-        #     text_value = text_value.replace("&", "\\&").replace("_", "\\_")
-        #     t2 = ax4.text(1., posy,  text_value, horizontalalignment='right')
-        #     bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        #     ax4.plot([0. + bb1.width, 1. - bb2.width], [posy+0.01, posy+0.01], ls=':', c='k')
-        for posy, key in zip([0.9, 0.85, 0.8],['ObsID','Date Obs','Exposure Time']):
+
+
+        t1 = ax4.text(0., 0.92,  r"\textbf{Can be made public}", fontweight='bold')
+        bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        t2 = ax4.text(1., 0.92, str(DictUtils.get_value_by_key(dict_new_det_info, 'Publishable')), horizontalalignment='right')
+        bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.92 + 0.01, 0.92 + 0.01], ls=':', c='k')
+
+
+        for posy, key in zip([0.85, 0.8, 0.75],['ObsID','Date Obs','Exposure Time']):
             t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
             bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             text_value = str(DictUtils.get_value_by_key(dict_new_det_info, key))
@@ -656,64 +628,49 @@ class MasterSource:
             bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             ax4.plot([0. + bb1.width, 1. - bb2.width], [posy+0.01, posy+0.01], ls=':', c='k')
 
-        for posy, key in zip(np.arange(0.5,0.75, 0.05)[::-1],['SRCNUM', 'Source RA', 'Source Dec', 'Position Error','Off-axis Angles']):
+        for posy, key in zip(np.arange(0.45,0.7, 0.05)[::-1],['SRCNUM', 'Source RA', 'Source Dec', 'Position Error','Off-axis Angles']):
             t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
             bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             t2 = ax4.text(1., posy, str(DictUtils.get_value_by_key(dict_new_det_info, key)), horizontalalignment='right')
             bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             ax4.plot([0. + bb1.width, 1. - bb2.width], [posy+0.01, posy+0.01], ls=':', c='k')
-        t1=ax4.text(0., 0.45, r'\textbf{Instruments DetML}', fontweight='bold')
+        t1=ax4.text(0., 0.4, r'\textbf{Instruments DetML}', fontweight='bold')
         bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        t2=ax4.text(1., 0.4, str(DictUtils.get_value_by_key(dict_new_det_info, 'Instruments DetML')), horizontalalignment='right')
+        t2=ax4.text(1., 0.35, str(DictUtils.get_value_by_key(dict_new_det_info, 'Instruments DetML')), horizontalalignment='right')
         bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        ax4.plot([0. + bb1.width, 1.], [0.45 + 0.01, 0.45 + 0.01], ls=':', c='k')
+        ax4.plot([0. + bb1.width, 1.], [0.4 + 0.01, 0.4 + 0.01], ls=':', c='k')
 
-        t1 = ax4.text(0., 0.3, r"\textbf{Type of Alert}", fontweight='bold')
+        t1 = ax4.text(0., 0.25, r"\textbf{Type of Alert}", fontweight='bold')
         bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        t2 = ax4.text(1., 0.3, flag_alert[0], horizontalalignment='right')
-        bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.3 + 0.01, 0.3 + 0.01], ls=':', c='k')
-
-        t1 = ax4.text(0., 0.25, r"\textbf{Long-term Variability}", fontweight='bold')
-        bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        t2 = ax4.text(1., 0.25, f'{np.round(self.var_ratio,1)}', horizontalalignment='right')
+        t2 = ax4.text(1., 0.25, flag_alert[0], horizontalalignment='right')
         bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
         ax4.plot([0. + bb1.width, 1. - bb2.width], [0.25 + 0.01, 0.25 + 0.01], ls=':', c='k')
 
-        t1 = ax4.text(0., 0.2,  r"\textbf{Short-term Variability}", fontweight='bold')
+        t1 = ax4.text(0., 0.2, r"\textbf{Long-term Variability}", fontweight='bold')
         bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        t2 = ax4.text(1., 0.2, f'{self.has_short_term_var}', horizontalalignment='right')
+        t2 = ax4.text(1., 0.2, f'{np.round(self.var_ratio,1)}', horizontalalignment='right')
         bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
         ax4.plot([0. + bb1.width, 1. - bb2.width], [0.2 + 0.01, 0.2 + 0.01], ls=':', c='k')
 
+        t1 = ax4.text(0., 0.15,  r"\textbf{Short-term Variability}", fontweight='bold')
+        bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        t2 = ax4.text(1., 0.15, f'{self.has_short_term_var}', horizontalalignment='right')
+        bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.15 + 0.01, 0.15 + 0.01], ls=':', c='k')
+
         if self.simbad_type.strip() !='':
-            t1 = ax4.text(0., 0.15,  r"\textbf{Simbad}", fontweight='bold')
+            t1 = ax4.text(0., 0.1,  r"\textbf{Simbad}", fontweight='bold')
             bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-            t2 = ax4.text(1., 0.15, f'{self.simbad_type.strip()} ({self.simbad_name.strip()})', horizontalalignment='right')
+            t2 = ax4.text(1., 0.1, f'{self.simbad_type.strip()} ({self.simbad_name.strip()})', horizontalalignment='right')
             bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-            ax4.plot([0. + bb1.width, 1. - bb2.width], [0.15 + 0.01, 0.15 + 0.01], ls=':', c='k')
+            ax4.plot([0. + bb1.width, 1. - bb2.width], [0.1 + 0.01, 0.1 + 0.01], ls=':', c='k')
         else:
-            ax4.text(0., 0.15,  r"\textbf{Not in Simbad}", fontweight='bold')
+            ax4.text(0., 0.1,  r"\textbf{Not in Simbad}", fontweight='bold')
 
         if self.has_spectral_warning:
             t1 = ax4.text(0., 0.05, r"\textbf{!!! Warning: extreme spectrum might impact variability !!!}", fontweight='bold')
-            # bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        """
-        string_to_plot = ''
-        for key in ['ObsID','Date Obs', 'Target Name']:
-            string_to_plot += str(key)+" : "+str(DictUtils.get_value_by_key(dict_new_det_info, key))+' \n'
-        string_to_plot+=' \n \n'
-        for key in ['SRCNUM','Off-axis Angles','Instruments DetML', 'Source RA', 'Source Dec', 'Position Error']:
-            string_to_plot+= str(key)+" : "+str(DictUtils.get_value_by_key(dict_new_det_info, key))+' \n'
-        string_to_plot+=' \n \n'
-        if self.simbad_type.strip() !='':
-            string_to_plot+=f'Simbad type: {self.simbad_type.strip()} \n'
-        else:
-            string_to_plot +="Not in Simbad \n"
-        string_to_plot += f"Short-term Variability: {self.has_short_term_var} \nLong-term Variability: {np.round(self.var_ratio,1)}"
-        """
+
         ax4.axis('off')
-        #ax4.text(x=0,y=0,s=string_to_plot)
         plt.draw()
         plt.tight_layout()
         if obsid not in os.listdir(os.path.join(PATHTO.master_sources,'AlertsLightcurves')):
