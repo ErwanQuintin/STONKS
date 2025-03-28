@@ -23,23 +23,41 @@ class Session(object):
     
     def __init__(self, file):
         self.obsid=None
+        self.obsmli_path=None
+        self.image_path=None
+        self.sumsas_path=None
         self.filename = secure_filename(file.name)
         self.name = f"{uuid.uuid4()}"
         self.path = os.path.realpath(os.path.join(PATHTO.sessions, self.name))
         self.remove_session_directory()
         print(f"build session folder {self.path}")
         os.mkdir(self.path )
-        self.filepath  = os.path.join(self.path, self.filename)
-        print(f"save {self.filename} in {self.filepath}")
-        file.save(self.filepath)
-    
+        self.inputtarpath  = os.path.join(self.path, self.filename)
+        print(f"save {self.filename} in {self.inputtarpath}")
+        file.save(self.inputtarpath)
+
+        print(f'extract the input data in {self.inputtarpath}')
+        with tarfile.open(self.inputtarpath, 'r') as tar:
+            tar.extractall(self.path, filter='data')
+        print('initializing and checking the input file paths')
+        for file in os.listdir(self.path):
+            if 'OBSMLI' in file:
+                self.obsmli_path = os.path.join(self.path, file)
+            elif 'IMAGE' in file:
+                self.image_path = os.path.join(self.path, file)
+            elif 'SUMSAS' in file:
+                self.sumsas_path = os.path.join(self.path, file)
+        if None in [self.obsmli_path,self.image_path,self.sumsas_path]:
+            print('Not all files were found - should raise an Error')
+
+
     def _set_obsid(self):
         """it is important to set the OBSid within the session make sure
         the is no overlap with other request since process_one_observation is not
         thread safe at all
         """
         try :
-            raw_data = fits.open(self.filepath, memmap=True)  
+            raw_data = fits.open(self.obsmli_path, memmap=True)
             obs_information = raw_data[0].header
             self.obsid = str(obs_information['OBS_ID'])
         except:
@@ -85,7 +103,7 @@ class Session(object):
             
             if not self._set_obsid():
                 result = {'status': "failed",
-                  'message': f"{self.filename} does not look like a OBSMLI fits file"}
+                  'message': f"{self.obsmli_path} does not look like a OBSMLI fits file"}
                 return result, 400
 
             from rest_api.logic import process_one_observation

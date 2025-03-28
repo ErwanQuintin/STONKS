@@ -40,20 +40,20 @@ class ParamHolder:
         self.publishable = None
 
 
-def process_one_observation(session, queue, filename_sumsas, filename_image):
-    print(f"Loading EPIC source list {session.filepath}")
+def process_one_observation(session, queue):
+    print(f"Loading EPIC source list {session.obsmli_path}")
     try:
         #Loads the choice of the PI regarding publication of data. Used to create a flag for publication
-        raw_data = fits.open(filename_sumsas, memmap=True)
+        raw_data = fits.open(session.sumsas_path, memmap=True)
         choice_PI = raw_data[0].header['PLACEHOLDER_NAME'] #Placeholder for the Keyword
 
         #Loads the EPIC image
-        raw_data = fits.open(filename_image, memmap=True)
+        raw_data = fits.open(session.image_path, memmap=True)
         image_wcs = wcs.WCS(raw_data[0].header)
         image_data = raw_data[0].data
 
         #Loads the data from the sources
-        raw_data = fits.open(session.filepath, memmap=True)
+        raw_data = fits.open(session.obsmli_path, memmap=True)
         min_off_axis_angle = 2 #Minimum accepted off-axis angle in arcmin, to reject the source
         min_det_ml = 10 #Minimum accepted detection likelihood
 
