@@ -82,8 +82,8 @@ def process_one_observation(session, queue):
         indices_not_target = off_target_angles>min_off_axis_angle
         indices_not_target=indices_not_target[(sources_raw["EP_EXT_ML"]<6) & indices_not_spurious]
 
-        #We assume the choice_pi is going to be one of three (0,1,2): nothing publishable, just serendipitous, or all
-        list_publishable = [(choice_PI==3)|((choice_PI==2)&bool_serend) for bool_serend in indices_not_target]
+        #We assume the choice_pi is going to be one of three (1,2,3):everything publishable, just serendipitous, nothing
+        list_publishable = [(choice_PI==1)|((choice_PI==2)&bool_serend) for bool_serend in indices_not_target]
 
         sources_raw = sources_raw[(sources_raw["EP_EXT_ML"]<6) & indices_not_spurious]
         tab_band_fluxes = [[list(line)] for line in sources_raw["EP_1_FLUX","EP_2_FLUX","EP_3_FLUX","EP_4_FLUX","EP_5_FLUX"]]
