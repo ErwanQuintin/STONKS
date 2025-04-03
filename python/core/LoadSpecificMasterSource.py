@@ -611,14 +611,20 @@ class MasterSource:
         r = fig.canvas.get_renderer()
 
 
-        t1 = ax4.text(0., 0.92,  r"\textbf{Can be made public}", fontweight='bold')
+        t1 = ax4.text(0., 0.92,  r"\textbf{Angular separation from target}", fontweight='bold')
         bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
-        t2 = ax4.text(1., 0.92, str(DictUtils.get_value_by_key(dict_new_det_info, 'Publishable')), horizontalalignment='right')
+        t2 = ax4.text(1., 0.92, str(DictUtils.get_value_by_key(dict_new_det_info, 'Angular separation from target')), horizontalalignment='right')
         bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
         ax4.plot([0. + bb1.width, 1. - bb2.width], [0.92 + 0.01, 0.92 + 0.01], ls=':', c='k')
 
+        t1 = ax4.text(0., 0.87,  r"\textbf{Can be made public}", fontweight='bold')
+        bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        t2 = ax4.text(1., 0.87, str(DictUtils.get_value_by_key(dict_new_det_info, 'Publishable')), horizontalalignment='right')
+        bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
+        ax4.plot([0. + bb1.width, 1. - bb2.width], [0.87 + 0.01, 0.87 + 0.01], ls=':', c='k')
 
-        for posy, key in zip([0.85, 0.8, 0.75],['ObsID','Date Obs','Exposure Time']):
+
+        for posy, key in zip([0.8, 0.75, 0.7],['ObsID','Date Obs','Exposure Time']):
             t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
             bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             text_value = str(DictUtils.get_value_by_key(dict_new_det_info, key))
@@ -628,7 +634,7 @@ class MasterSource:
             bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             ax4.plot([0. + bb1.width, 1. - bb2.width], [posy+0.01, posy+0.01], ls=':', c='k')
 
-        for posy, key in zip(np.arange(0.45,0.7, 0.05)[::-1],['SRCNUM', 'Source RA', 'Source Dec', 'Position Error','Off-axis Angles']):
+        for posy, key in zip(np.arange(0.45,0.65, 0.05)[::-1],['SRCNUM', 'Source RA', 'Source Dec', 'Position Error']):
             t1 = ax4.text(0., posy, r'\textbf{'+key+'}', fontweight='bold')
             bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
             t2 = ax4.text(1., posy, str(DictUtils.get_value_by_key(dict_new_det_info, key)), horizontalalignment='right')
@@ -699,13 +705,15 @@ class MasterSource:
         # Edit the detection infos from AlertPDF-oriented to JSON-oriented
         dict_new_det_info.pop("Off-axis Angles", None)
         dict_new_det_info.pop("Instruments DetML", None)
+        dict_new_det_info.pop("Target angular separation", None)
         dict_new_det_info['EP_DETML']=f'{param_holder.ep_detml:.1f}'
         dict_new_det_info['PN_DETML']=f'{param_holder.pn_detml:.1f}'
         dict_new_det_info['M1_DETML']=f'{param_holder.m1_detml:.1f}'
         dict_new_det_info['M2_DETML']=f'{param_holder.m2_detml:.1f}'
-        dict_new_det_info['PN_OFFAX']=f'{param_holder.pn_offax:.1f}'
-        dict_new_det_info['M1_OFFAX']=f'{param_holder.m1_offax:.1f}'
-        dict_new_det_info['M2_OFFAX']=f'{param_holder.m2_offax:.1f}'
+        #dict_new_det_info['PN_OFFAX']=f'{param_holder.pn_offax:.1f}'
+        #dict_new_det_info['M1_OFFAX']=f'{param_holder.m1_offax:.1f}'
+        #dict_new_det_info['M2_OFFAX']=f'{param_holder.m2_offax:.1f}'
+        dict_new_det_info['TARGET_ANG_SEP']=f'{param_holder.off_target_angle:.1f}'
 
         dict_new_det_info['VarAmplitude']=np.round(self.var_ratio,1)
         dict_new_det_info['LastFlux']=f'{param_holder.flux:.1e}'
