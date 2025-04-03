@@ -43,10 +43,6 @@ class ParamHolder:
 def process_one_observation(session, queue):
     print(f"Loading EPIC source list {session.obsmli_path}")
     try:
-        #Loads the choice of the PI regarding publication of data. Used to create a flag for publication
-        raw_data = fits.open(session.sumsas_path, memmap=True)
-        choice_PI = raw_data[0].header['PLACEHOLDER_NAME'] #Placeholder for the Keyword
-
         #Loads the EPIC image
         raw_data = fits.open(session.image_path, memmap=True)
         image_wcs = wcs.WCS(raw_data[0].header)
@@ -54,6 +50,7 @@ def process_one_observation(session, queue):
 
         #Loads the data from the sources
         raw_data = fits.open(session.obsmli_path, memmap=True)
+        choice_PI = raw_data[0].header['VARALERT'] #Placeholder for the Keyword
         min_off_axis_angle = 2 #Minimum accepted off-axis angle in arcmin, to reject the source
         min_det_ml = 10 #Minimum accepted detection likelihood
 
@@ -80,7 +77,7 @@ def process_one_observation(session, queue):
         indices_not_target=indices_not_target[(sources_raw["EP_EXT_ML"]<6) & indices_not_spurious]
 
         #We assume the choice_pi is going to be one of three (0,1,2): nothing publishable, just serendipitous, or all
-        list_publishable = [(choice_PI==2)|((choice_PI==1)&bool_serend) for bool_serend in indices_not_target]
+        list_publishable = [(choice_PI==3)|((choice_PI==2)&bool_serend) for bool_serend in indices_not_target]
 
         sources_raw = sources_raw[(sources_raw["EP_EXT_ML"]<6) & indices_not_spurious]
         tab_band_fluxes = [[list(line)] for line in sources_raw["EP_1_FLUX","EP_2_FLUX","EP_3_FLUX","EP_4_FLUX","EP_5_FLUX"]]

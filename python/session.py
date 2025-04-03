@@ -25,7 +25,6 @@ class Session(object):
         self.obsid=None
         self.obsmli_path=None
         self.image_path=None
-        self.sumsas_path=None
         self.filename = secure_filename(file.name)
         self.name = f"{uuid.uuid4()}"
         self.path = os.path.realpath(os.path.join(PATHTO.sessions, self.name))
@@ -45,9 +44,7 @@ class Session(object):
                 self.obsmli_path = os.path.join(self.path, file)
             elif 'IMAGE' in file:
                 self.image_path = os.path.join(self.path, file)
-            elif 'SUMSAS' in file:
-                self.sumsas_path = os.path.join(self.path, file)
-        if None in [self.obsmli_path,self.image_path,self.sumsas_path]:
+        if None in [self.obsmli_path,self.image_path]:
             print('Not all files were found - should raise an Error')
 
 

@@ -276,11 +276,11 @@ def match_Simbad(ra_target, dec_target, pos_err):
     # Id result_table is none Simbad raises a script error (don't mind)
     if not result_table is None:
         result = result_table[0]
-        if result["OTYPE"] in dic_classifier.keys():
-            simbad_type = dic_classifier[result["OTYPE"]]
+        if result["otype"] in dic_classifier.keys():
+            simbad_type = dic_classifier[result["otype"]]
         else:
             simbad_type = "Unknown"
-        simbad_name = result["MAIN_ID"]
+        simbad_name = result["main_id"]
     else:
         simbad_type = ""
         simbad_name = ""
