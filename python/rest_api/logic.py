@@ -39,21 +39,37 @@ class ParamHolder:
         self.ep_detml = None
         self.choice_pi = None
         self.publishable = None
+        self.pointing_type = None
 
 
 def process_one_observation(session, queue):
     print(f"Loading EPIC source list {session.obsmli_path}")
     try:
-        #Loads the EPIC image
-        raw_data = fits.open(session.image_path, memmap=True)
-        image_wcs = wcs.WCS(raw_data[0].header)
-        image_data = raw_data[0].data
-        ra_target, dec_target = raw_data[0].header['RA_OBJ'], raw_data[0].header['DEC_OBJ']
-        target_position = SkyCoord(ra=ra_target,dec=dec_target, unit='deg')
+        if session.image_path is not None:
+            #Loads the EPIC image if it was uploaded
+            raw_data = fits.open(session.image_path, memmap=True)
+            image_wcs = wcs.WCS(raw_data[0].header)
+            image_data = raw_data[0].data
+            ra_target, dec_target = raw_data[0].header['RA_OBJ'], raw_data[0].header['DEC_OBJ']
+            target_position = SkyCoord(ra=ra_target, dec=dec_target, unit='deg')
+            flag_pointing_type='target'
+        else:
+            image_data=None
+            image_wcs =None
 
         #Loads the data from the sources
         raw_data = fits.open(session.obsmli_path, memmap=True)
-        choice_PI = raw_data[0].header['VARALERT'] #Placeholder for the Keyword
+        if 'VARALERT' in raw_data[0].header.keys():
+            choice_PI = raw_data[0].header['VARALERT']
+        else:
+            print('keyword for PI choice not present - assume no publishable alert')
+            choice_PI=3
+        if session.image_path is None:
+            #If no image was given, we use the pointing position as a proxy to the target position, NOT IDEAL
+            ra_target, dec_target = raw_data[0].header['RA_PNT'], raw_data[0].header['DEC_PNT']
+            target_position = SkyCoord(ra=ra_target, dec=dec_target, unit='deg')
+            flag_pointing_type='pointing'
+
         min_off_axis_angle = 2 #Minimum accepted off-axis angle in arcmin, to reject the source
         min_det_ml = 10 #Minimum accepted detection likelihood
 
@@ -82,7 +98,7 @@ def process_one_observation(session, queue):
         indices_not_target = off_target_angles>min_off_axis_angle
         indices_not_target=indices_not_target[(sources_raw["EP_EXT_ML"]<6) & indices_not_spurious]
 
-        #We assume the choice_pi is going to be one of three (1,2,3):everything publishable, just serendipitous, nothing
+        #Choice_pi is going to be one of three (1,2,3): everything publishable, just serendipitous, nothing
         list_publishable = [(choice_PI==1)|((choice_PI==2)&bool_serend) for bool_serend in indices_not_target]
 
         sources_raw = sources_raw[(sources_raw["EP_EXT_ML"]<6) & indices_not_spurious]
@@ -117,6 +133,7 @@ def process_one_observation(session, queue):
             param_holder.ep_detml = ep_detml
             param_holder.choice_pi = choice_PI
             param_holder.publishable = publishable
+            param_holder.pointing_type = flag_pointing_type
 
             print (f"Processing source {src_num}")
             nb_alerts += process_one_source(param_holder, dict_observation_metadata, session, image_data, image_wcs)
@@ -153,6 +170,8 @@ def process_one_source(param_holder, observation_metadata, session, image_data, 
     dict_detection_info['Position Error']=f'{param_holder.pos_err:.2f}"'
     dict_detection_info['ChoicePI']=f'{param_holder.choice_pi}'
     dict_detection_info['Publishable']=f'{param_holder.publishable}'
+    dict_detection_info['PointingType']=f'{param_holder.pointing_type}'
+
 
     result_alert, flag_alert, info_source = transient_alert(session,
                                    session.obsid,

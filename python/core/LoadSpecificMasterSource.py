@@ -551,29 +551,30 @@ class MasterSource:
                                 edgecolor='gray', zorder=1)
                 ax2.errorbar([],[],[],[],fmt='o', markeredgecolor='gray', c=colors[cat],label=cat)
 
-        #Plot the X-ray image
-        skyfov = 4 * u.arcmin
-        skyposition = SkyCoord(self.ra * u.deg, self.dec * u.deg)
-        pixposition = wcs.utils.skycoord_to_pixel(skyposition, image_wcs)
-        pixelsize = wcs.utils.proj_plane_pixel_scales(image_wcs)[0]
-        pixelfov = (skyfov.to(u.deg) / pixelsize).value
+        #Plot the X-ray image if it was uploaded
+        if image_data is not None:
+            skyfov = 4 * u.arcmin
+            skyposition = SkyCoord(self.ra * u.deg, self.dec * u.deg)
+            pixposition = wcs.utils.skycoord_to_pixel(skyposition, image_wcs)
+            pixelsize = wcs.utils.proj_plane_pixel_scales(image_wcs)[0]
+            pixelfov = (skyfov.to(u.deg) / pixelsize).value
 
-        imagecropped = image_data[int(pixposition[1] - (pixelfov / 2)):int(pixposition[1] + (pixelfov / 2)),
-                                  int(pixposition[0] - (pixelfov / 2)):int(pixposition[0] + (pixelfov / 2))]
-        ax3.imshow(np.where(imagecropped > 0, imagecropped, 1), norm=LogNorm(),cmap='cmr.ocean',origin='lower')
-        ax3.scatter([pixelfov / 2], [pixelfov / 2], marker='+', c='r')
-        ax3.axis("off")
+            imagecropped = image_data[int(pixposition[1] - (pixelfov / 2)):int(pixposition[1] + (pixelfov / 2)),
+                                      int(pixposition[0] - (pixelfov / 2)):int(pixposition[0] + (pixelfov / 2))]
+            ax3.imshow(np.where(imagecropped > 0, imagecropped, 1), norm=LogNorm(),cmap='cmr.ocean',origin='lower')
+            ax3.scatter([pixelfov / 2], [pixelfov / 2], marker='+', c='r')
+            ax3.axis("off")
 
-        x0, y0 = 0, 0
-        positions_x = [x0 + (0.25 * pixelfov), x0 + (0.5 * pixelfov)]
-        positions_y = [y0 + (0.15 * pixelfov), y0 + (0.15 * pixelfov)]
-        text_position_x = x0 + (0.38 * pixelfov)
-        text_position_y = y0 + (0.07 * pixelfov)
-        ax3.plot(positions_x, positions_y, c="w",lw=3)
-        ax3.scatter(positions_x, positions_y, c="w", marker="o", s=20)
-        scaletext = int(skyfov.value/4)
-        ax3.text(text_position_x, text_position_y, f"{scaletext}'", c="w", fontsize=20,
-                 horizontalalignment='center')
+            x0, y0 = 0, 0
+            positions_x = [x0 + (0.25 * pixelfov), x0 + (0.5 * pixelfov)]
+            positions_y = [y0 + (0.15 * pixelfov), y0 + (0.15 * pixelfov)]
+            text_position_x = x0 + (0.38 * pixelfov)
+            text_position_y = y0 + (0.07 * pixelfov)
+            ax3.plot(positions_x, positions_y, c="w",lw=3)
+            ax3.scatter(positions_x, positions_y, c="w", marker="o", s=20)
+            scaletext = int(skyfov.value/4)
+            ax3.text(text_position_x, text_position_y, f"{scaletext}'", c="w", fontsize=20,
+                     horizontalalignment='center')
 
         #ax1.tick_params(axis='x', rotation=45)
         ax1.set_title("Long-term lightcurve (0.2-12 keV)")
@@ -610,8 +611,8 @@ class MasterSource:
         ax4.set_ylim((0,1))
         r = fig.canvas.get_renderer()
 
-
-        t1 = ax4.text(0., 0.92,  r"\textbf{Angular separation from target}", fontweight='bold')
+        pointingtype=str(DictUtils.get_value_by_key(dict_new_det_info, 'PointingType'))
+        t1 = ax4.text(0., 0.92,  rf"\textbf{{Angular separation from {pointingtype}}}", fontweight='bold')
         bb1 = t1.get_window_extent(renderer=r).transformed(ax4.transData.inverted())
         t2 = ax4.text(1., 0.92, str(DictUtils.get_value_by_key(dict_new_det_info, 'Angular separation from target')), horizontalalignment='right')
         bb2 = t2.get_window_extent(renderer=r).transformed(ax4.transData.inverted())

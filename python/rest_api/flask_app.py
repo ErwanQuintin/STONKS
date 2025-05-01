@@ -10,7 +10,7 @@ from session import Session
 from cache import Cache
 
 UPLOAD_FOLDER = '/path/to/the/uploads'
-ALLOWED_EXTENSIONS = ['zip','ZIP','tar','TAR','gz','GZ']#['fit', 'fits', 'FITS', 'FIT']
+ALLOWED_EXTENSIONS = ['zip','ZIP','tar','TAR','gz','GZ', 'fit', 'fits', 'FITS', 'FIT']
 app = Flask(__name__)
 app.secret_key = "super secret key"
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024    # 1 Mb limit

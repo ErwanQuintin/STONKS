@@ -35,17 +35,19 @@ class Session(object):
         print(f"save {self.filename} in {self.inputtarpath}")
         file.save(self.inputtarpath)
 
-        print(f'extract the input data in {self.inputtarpath}')
-        with tarfile.open(self.inputtarpath, 'r') as tar:
-            tar.extractall(self.path, filter='data')
-        print('initializing and checking the input file paths')
-        for file in os.listdir(self.path):
-            if 'OBSMLI' in file:
-                self.obsmli_path = os.path.join(self.path, file)
-            elif 'IMAGE' in file:
-                self.image_path = os.path.join(self.path, file)
-        if None in [self.obsmli_path,self.image_path]:
-            print('Not all files were found - should raise an Error')
+        if self.filename.endswith('.FIT'):
+            print('old version with only OBMSLI, no image found')
+            self.obsmli_path = os.path.join(self.path, self.filename)
+        else:
+            print(f'extract the input data in {self.inputtarpath}')
+            with tarfile.open(self.inputtarpath, 'r') as tar:
+                tar.extractall(self.path, filter='data')
+            print('initializing and checking the input file paths')
+            for file in os.listdir(self.path):
+                if 'OBSMLI' in file:
+                    self.obsmli_path = os.path.join(self.path, file)
+                elif 'IMAGE' in file:
+                    self.image_path = os.path.join(self.path, file)
 
 
     def _set_obsid(self):
