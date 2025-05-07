@@ -25,7 +25,7 @@ class Session(object):
         self.obsid=None
         self.obsmli_path=None
         self.image_path=None
-        self.filename = secure_filename(file.name)
+        self.filename = secure_filename(file.filename)
         self.name = f"{uuid.uuid4()}"
         self.path = os.path.realpath(os.path.join(PATHTO.sessions, self.name))
         self.remove_session_directory()
