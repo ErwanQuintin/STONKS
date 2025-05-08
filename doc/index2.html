@@ -168,7 +168,16 @@
 							<h1>NEWS</h1>
 						</div>
 
-
+						<div class="row news">
+							<div class="col-sm-2 date">
+								<div class="big">8</div>
+								<div class="small">
+									<span style="text-transform: capitalize">may</span> 2025
+								</div>
+							</div>
+							<div class="col-sm-10">Added possible EPIC image input</div>
+						</div>
+						<br>
 						<div class="row news">
 							<div class="col-sm-2 date">
 								<div class="big">2</div>
@@ -201,13 +210,14 @@
 						        variability estimator for XMM-Newton data. It is provided by the
 						        ACDS in Strasbourg, and is based on a compilation of multi-mission
 						        archival X-ray data.</p>
-						<p>What STONKS does: if you provide an EPIC source list (*EP*OBSMLI* file), it
-						        will compare their positions and fluxes to any known archival X-ray data,
+						<p>What STONKS does: if you provide either an EPIC source list (*EP*OBSMLI* file) or a 
+							tar ball containing an EPIC source list and an EPIC image, it
+						        will compare the positions and fluxes of new detections to any known archival X-ray data,
 						        including prior upper limits. If such data is available, STONKS:</p>
 						<ul>
 							<li>Estimates the long-term variability of the source,
 							
-							<li>Builds a multi-instrument lightcurve,
+							<li>Builds a multi-instrument lightcurve, with a 4'x4' EPIC view around the source,
 							
 							<li>Builds approximate multi-instrument spectra, using the available
 							    band photometry for each mission.
@@ -215,8 +225,11 @@
 						</ul>
 						<p>
 						  Results are then returned in the form of a tar ball, containing one PDF
-						  file for each variable source in the observation. For further information
+						  file and one JSON file for each variable source in the observation. For further information
 						  on the methods and approximations, see the online <a href='/docs'>documentation</a>.
+
+						<p>Once generated and manually inspected, publishable alerts are made available at 
+							<a href="http://flix.irap.omp.eu/stonks">http://flix.irap.omp.eu/stonks</a></p>
 						
 						<p>Please note that it is in its early beta stage...</p>
 					</div>
