@@ -41,7 +41,7 @@ USER $USR:$USR
 WORKDIR /home/$USR
 
 # get the list of required Python packages
-ADD ./requirement.txt .
+ADD ./requirements.txt .
 
 ENV PYTHONPATH /home/stonks/python:$PYTHONPATH
 ENV PATH /home/stonks/.local/bin/:$PATH
@@ -50,7 +50,7 @@ ENV PATH /home/stonks/.local/bin/:$PATH
 #RUN chmod 777 /nonexistent/.cache/pip
 RUN  \
    python -m pip install --upgrade pip \
-   && python -m pip install -U -r requirement.txt \
+   && python -m pip install -U -r requirements.txt \
    && rm -fr ${HOME}/.cache/pip 
 
 # Get Python sources and STILTS Java tool 
