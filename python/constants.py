@@ -15,7 +15,7 @@ class PATHTO:
 print(f"working from {PATHTO.sessions}")
 class CACHE:
     precomputed_depth = 50
-    number_of_cached_sessions = 100
+    number_of_cached_sessions = 50
     cleanup_delay = 5000 # in sec
 
 #if os.path.exists(PATHTO.tempo) is False:
