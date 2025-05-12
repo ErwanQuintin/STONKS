@@ -1,0 +1,9 @@
+.project
+.pydevproject
+*eclipse*
+Data
+sessions/*
+stilts
+*cache*
+.settings
+.DS_Store

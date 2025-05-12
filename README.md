@@ -14,6 +14,32 @@ Further documentation is available in STONKS_Documentation.pdf if needed.
 This software was developed as part of the XMM2ATHENA project. This project has received funding from the European
 Union's Horizon 2020 research and innovation programme under grant agreement n°101004168, the XMM2ATHENA project.
 
-Author: Erwan Quintin, erwan.quintin@irap.omp.eu
+Author: Erwan Quintin, erwan.quintin.astro@gmail.com
 
 NOTE: In its current form, the software will not work because it will be missing the catalog data. Once a solution has been found to host this massive data in a sustainable fashion, this repository will be updated.
+
+# Launch command
+
+```
+docker run -d -p 5555:5000 --name stonks \
+       --restart unless-stopped \
+       --mount source=/home/laurent.michel/STONKS/Data,target=/home/stonks/Data,type=bind \
+        --mount source=/home/laurent.michel/STONKS/sessions,target=/home/stonks/sessions,type=bind\
+       -t stonks
+```
+# Start at boot:
+```
+[Unit]
+Description=STONKS container
+After=docker.service
+Wants=network-online.target docker.socket
+Requires=docker.socket
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/docker start -a stonks
+ExecStop=/usr/bin/docker stop -t 3 stonks
+
+[Install]
+WantedBy=multi-user.target
+```

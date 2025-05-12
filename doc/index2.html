@@ -1,0 +1,271 @@
+
+
+<!DOCTYPE html>
+<html lang="en" data-ng-app="xcApp">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description"
+	content="The STONKS long term variability estimator">
+<meta name="author"
+	content="Erwin Quintin and Laurent Michel and the team">
+
+<title>STONKS</title>
+
+<link href=/stonks/static/images/favicon.ico rel="SHORTCUT ICON">
+<link href=/stonks/static/bootstrap-3.4.1-dist/css/bootstrap.min.css
+	rel="stylesheet">
+<link
+	href=/stonks/static/bootstrap-3.4.1-dist/css/bootstrap-theme.min.css
+	rel="stylesheet">
+<link href=/stonks/static/css/normalize.css rel="stylesheet">
+<link href=/stonks/static/css/main.css rel="stylesheet">
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+</head>
+
+<body role="document" data-ng-controller="MainCtrl">
+	<div class="main-content-wrapper">
+
+
+		<div class="jumbotron" id="top">
+			<div class="container-fluid">
+				<p class="text-center">
+					<a target="_self" class="main-logo" href="/"><img
+						src="/stonks/static/images/index/index_logo.png" /></a>
+				</p>
+				<h1>STONKS</h1>
+				<h2>Long Term Variability Estimator</h2>
+
+				<div class="file-area">
+					<div class="row top">
+						<div class="col-md-9">
+							<p>Upload an EPIC source list (*EP*OBSMLI* file)</p>
+						</div>
+						<!--<div class="col-md-3 text-right"
+							style="padding-top: 3px; padding-right: 16px">
+							<img src="/stonks/static/images/index/showquery.png" /> <a
+								class="sql" data-querylang-button href="javascript:void(0);">
+								File format </a>
+						</div>-->
+					</div>
+
+					<div class="input-group">
+
+						<input type="file" id="fileInput" class="form-control"> <span
+							class="input-group-btn"><button id="uploadButton"
+								class="btn btn-primary">UPLOAD</button></span>
+					</div>
+					<!-- Modal -->
+					<div id="emptyFileModal" class="modal"
+						style="background-color: rgba(0, 0, 0, 0.4);" role="dialog">
+						<div class="modal-dialog">
+							<!-- Modal content-->
+							<div class="modal-content">
+								<div class="modal-header">
+									<h4 class="modal-title">Processing the source list (can
+										take minutes...)</h4>
+								</div>
+							</div>
+						</div>
+					</div>
+					<script>  
+
+	// JavaScript
+	document.getElementById("uploadButton").addEventListener("click", function () {
+	  const fileInput = document.getElementById("fileInput");
+	  $("#emptyFileModal").css("display", "block");
+	  
+	  if (fileInput.files.length > 0) {
+	    const formData = new FormData();
+	    var fileName = "filename.tar";
+	    formData.append("file", fileInput.files[0]);
+	    
+	    fetch("/stonks/process-obs", {
+	      method: "POST",
+	      body: formData,
+	    })
+        .then(response => {
+			$("#emptyFileModal").css("display", "none")
+        	if( response.ok ) {
+        		fileName = response.headers.get('content-disposition').split('filename=')[1].split(';')[0];
+        		return  response.blob()
+            } else if( response.status == 404 ) {
+            	alert("no variability found")
+            } else {
+            	response.json().then(function(object) {
+            		if( 'exception' in object){
+                		alert("Internal error: " + object.exception)
+            		} else {
+            			alert("Bad Request: " + object.message)
+            		}
+            		}
+            	)
+            }
+        })
+	    .then(blob => {
+			if( blob ) {      
+            	var url = window.URL.createObjectURL(blob);
+            	var a = document.createElement('a');
+            	a.href = url;
+            	a.download = fileName;
+            	document.body.appendChild(a); 
+            	a.click();    
+            	a.remove();  
+			}
+ 	    })
+	    .catch(error => {
+			$("#emptyFileModal").css("display", "none")
+	      alert("An error occurred:", error);
+	    });
+	  } else {
+		$("#emptyFileModal").css("display", "none")
+	    alert("No file selected.");
+	  }
+	});
+</script>
+
+				</div>
+			</div>
+		</div>
+
+		<div class="navbar navbar-inverse" role="navigation">
+			<div class="container">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle" data-toggle="collapse"
+						data-target=".navbar-collapse">
+						<span class="sr-only"> Toggle navigation </span> <span
+							class="icon-bar"></span> <span class="icon-bar"></span> <span
+							class="icon-bar"></span>
+					</button>
+				</div>
+				<div class="navbar-collapse collapse">
+					<ul class="nav navbar-nav">
+						<!-- @TODO class="active hidden-sm" -->
+						<li class="active hidden-sm"><a target="_self" href="/stonks"><img
+								src="/stonks/static/images/top_menu/home.png" /> Home </a></li>
+						<li><a target="_blank" href="/stonks/doc"><img
+								src="/stonks/static/images/top_menu/docs.png" /> Docs </a></li>
+						<li><a target="_self" href="/stonks/doc/links.html"><img
+								src="/stonks/static/images/top_menu/links.png" /> Links </a></li>
+						<li><a target="_self" href="/stonks/doc/about.html"><img
+								src="/stonks/static/images/top_menu/about.png" /> About </a></li>
+					</ul>
+				</div>
+				<!--/.nav-collapse -->
+			</div>
+		</div>
+
+		<div class="container main-content" role="main">
+
+			<link href="/stonks/static/css/index.css" rel="stylesheet" />
+			<div class="row">
+				<div class="col-sm-7">
+					<div class="news-on-main">
+						<div class="page-header">
+							<h1>NEWS</h1>
+						</div>
+
+						<div class="row news">
+							<div class="col-sm-2 date">
+								<div class="big">8</div>
+								<div class="small">
+									<span style="text-transform: capitalize">may</span> 2025
+								</div>
+							</div>
+							<div class="col-sm-10">Added possible EPIC image input</div>
+						</div>
+						<br>
+						<div class="row news">
+							<div class="col-sm-2 date">
+								<div class="big">2</div>
+								<div class="small">
+									<span style="text-transform: capitalize">june</span> 2024
+								</div>
+							</div>
+							<div class="col-sm-10">Support odd target names - report internal errors to users</div>
+						</div>
+						<br>
+						<div class="row news">
+							<div class="col-sm-2 date">
+								<div class="big">20</div>
+								<div class="small">
+									<span style="text-transform: capitalize">nov</span> 2023
+								</div>
+							</div>
+							<div class="col-sm-10">XMM2Athena page layout</div>
+						</div>
+
+						<div class="page-header"></div>
+
+					
+					</div>
+				</div>
+				<div class="col-sm-5">
+					<div class="main-overview">
+						<h1>WEBSITE OVERVIEW</h1>
+						<p>This website provides experimental access to the STONKS long-term
+						        variability estimator for XMM-Newton data. It is provided by the
+						        ACDS in Strasbourg, and is based on a compilation of multi-mission
+						        archival X-ray data.</p>
+						<p>What STONKS does: if you provide either an EPIC source list (*EP*OBSMLI* file) or a 
+							tar ball containing an EPIC source list and an EPIC image, it
+						        will compare the positions and fluxes of new detections to any known archival X-ray data,
+						        including prior upper limits. If such data is available, STONKS:</p>
+						<ul>
+							<li>Estimates the long-term variability of the source,
+							
+							<li>Builds a multi-instrument lightcurve, with a 4'x4' EPIC view around the source,
+							
+							<li>Builds approximate multi-instrument spectra, using the available
+							    band photometry for each mission.
+						
+						</ul>
+						<p>
+						  Results are then returned in the form of a tar ball, containing one PDF
+						  file and one JSON file for each variable source in the observation. For further information
+						  on the methods and approximations, see the online <a href='/docs'>documentation</a>.
+
+						<p>Once generated and manually inspected, publishable alerts are made available at 
+							<a href="http://flix.irap.omp.eu/stonks">http://flix.irap.omp.eu/stonks</a></p>
+						
+						<p>Please note that it is in its early beta stage...</p>
+					</div>
+					<br />
+				</div>
+			</div>
+
+
+		</div>
+
+	</div>
+	<div class="container-fluid footer">
+		<div class="container">
+			<div class="copy links">
+				&COPY; 2023, DEVELOPED IN THE FRAMEWORK OF THE <a
+					href="http://xmm-ssc.irap.omp.eu/xmm2athena/" target="_blank">XMM2ATHENA
+					PROJECT</a>
+			</div>
+			<img src="/stonks/static/images/index/xmm2athena_logo.png"> <img
+				src="/stonks/static/images/index/EU_flag.jpg"> <a href="#top"
+				class="bcktotop"></a>
+			<div class="grant">
+				This project has received funding from the European Union's Horizon
+				2020 <br> research and innovation programme under grant
+				agreement n°101004168
+			</div>
+		</div>
+	</div>
+
+	<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+	<!--[if lt IE 9]>
+          <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+          <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+</body>
+</html>
+
+

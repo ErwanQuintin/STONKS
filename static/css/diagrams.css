@@ -1,0 +1,30 @@
+.query-error {
+    position: absolute;
+    bottom: -40px;
+    color: red;
+}
+
+.diagrams-controls {
+    width: 100%;
+    margin-top: 7px;
+}
+.point-chart {
+    width: 100%;
+    height: 282px;
+}
+.form-group .control-label {
+    text-align: left;
+}
+.form-group input[type="checkbox"] {
+    margin-left: -5px;
+}
+.checkbox .control-label {
+    margin-left: 5px;
+}
+.no-objects-warning {
+    position: absolute;
+    left: 25%;
+    top: 25%;
+    width: 325px;
+    height: 90px;
+}

@@ -1,0 +1,37 @@
+.grid line, .grid path {
+    stroke: grey;
+    stroke-width: 1;
+    fill: none;
+    shape-rendering: crispEdges;
+    opacity: 0.7;
+}
+.y-error-ticks line {
+	stroke: black;
+	stroke-width: 2;
+}
+.x-error-bar line {
+    stroke: black;
+    stroke-width: 2;
+    marker-start: url(#markerTickV);
+    marker-end: url(#markerTickV);
+}
+.y-error-bar line {
+    stroke: black;
+    stroke-width: 2;
+    marker-start: url(#markerTickH);
+    marker-end: url(#markerTickH);
+}
+.y.axis text,
+.x.axis text {
+	text-anchor: middle;
+	font-size: 12pt;
+}
+.axis path {
+	stroke: grey;
+	stroke-width: 1;
+	fill: none;
+	shape-rendering: crispEdges;
+}
+circle.point:hover {
+    fill: red;
+}
