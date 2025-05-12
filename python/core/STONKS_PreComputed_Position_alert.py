@@ -277,11 +277,11 @@ def match_Simbad(ra_target, dec_target, pos_err):
     if not result_table is None:
         result = result_table[0]
         print(result.keys())
-        if result["OTYPE"] in dic_classifier.keys():
-            simbad_type = dic_classifier[result["OTYPE"]]
+        if result["otype"] in dic_classifier.keys():
+            simbad_type = dic_classifier[result["otype"]]
         else:
             simbad_type = "Unknown"
-        simbad_name = result["MAIN_ID"]
+        simbad_name = result["main_id"]
     else:
         simbad_type = ""
         simbad_name = ""
