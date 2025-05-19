@@ -11,7 +11,7 @@
 
 #
 FROM python:3.10-slim
-LABEL Laurent Michel <laurent.michel@astro.unistra.fr>
+LABEL "Laurent Michel"="<laurent.michel@astro.unistra.fr>"
 
 # install Linux packages
 # java takes a piece of time
@@ -31,9 +31,9 @@ RUN apt-get install -y texlive-full
 # User setup
 ARG stonks_gid=99
 ARG stonks_uid=29
-ENV USR stonks
-ENV stonks_GID $stonks_gid
-ENV stonks_UID $stonks_uid
+ENV USR=stonks
+ENV stonks_GID=$stonks_gid
+ENV stonks_UID=$stonks_uid
 RUN addgroup -gid $stonks_GID $USR
 RUN adduser --system --uid $stonks_UID --gid $stonks_GID --home /home/$USR $USR
 # Now logon as stonks user
@@ -43,8 +43,8 @@ WORKDIR /home/$USR
 # get the list of required Python packages
 ADD ./requirements.txt .
 
-ENV PYTHONPATH /home/stonks/python:$PYTHONPATH
-ENV PATH /home/stonks/.local/bin/:$PATH
+ENV PYTHONPATH=/home/stonks/python:$PYTHONPATH
+ENV PATH=/home/stonks/.local/bin/:$PATH
 
 # install Python packages
 #RUN chmod 777 /nonexistent/.cache/pip
@@ -65,5 +65,5 @@ RUN mkdir Data
 RUN mkdir sessions
 
 # Run the production server
-CMD gunicorn --bind 0.0.0.0:5000 --timeout 600 rest_api.wsgi_api:application
+CMD ["gunicorn", "--bind",  "0.0.0.0:5000", "--timeout", "600",  "rest_api.wsgi_api:application"]
 

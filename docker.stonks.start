@@ -1,3 +1,11 @@
+docker images
+docker system prune
+docker rmi
+docker build . -t stonks
+docker ps
+docker kill
+docker rm
+
 docker run -d -p 5555:5000 --name stonks --restart unless-stopped  \
  --mount source=/data-local/docker_services/stonks/Data,target=/home/stonks/Data,type=bind \
  --mount source=/data-local/docker_services/stonks/sessions,target=/home/stonks/sessions,type=bind \
