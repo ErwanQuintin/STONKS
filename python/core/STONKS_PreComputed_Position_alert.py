@@ -274,7 +274,7 @@ def match_Simbad(ra_target, dec_target, pos_err):
                                                       unit=(u.deg, u.deg), frame='icrs'),
                                        radius=10*u.arcsec)
     # Id result_table is none Simbad raises a script error (don't mind)
-    if not result_table is None:
+    if result_table:
         result = result_table[0]
         print(result.keys())
         if result["otype"] in dic_classifier.keys():
