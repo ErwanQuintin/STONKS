@@ -26,7 +26,6 @@ from astropy.table import Table
 from astropy.time import Time
 import astropy.units as u
 from tqdm import tqdm
-from astropy.constants import c
 from core.LoadSpecificMasterSource import MasterSource, Source, load_specific_master_sources
 from core import api as rpx
 from astropy.coordinates import SkyCoord, search_around_sky, Angle
@@ -274,7 +273,7 @@ def match_Simbad(ra_target, dec_target, pos_err):
                                                       unit=(u.deg, u.deg), frame='icrs'),
                                        radius=10*u.arcsec)
     # Id result_table is none Simbad raises a script error (don't mind)
-    if result_table and result_table.size() > 0:
+    if result_table and len(result_table) > 0:
         result = result_table[0]
         print(result.keys())
         if result["otype"] in dic_classifier.keys():
