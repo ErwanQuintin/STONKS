@@ -35,6 +35,7 @@ def upload_file():
             result = {'status': 'ko',
                       'message': 'No selected file'}
             return result, 400
+        Session.clean_up()
         return Session(file).process_observation()
                    
 @app.route("/stonks/doc")

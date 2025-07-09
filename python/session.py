@@ -6,10 +6,10 @@ Created on 1 mars 2023
 import os
 import uuid
 import tarfile
-import time
 import traceback
 import sys
 import shutil
+from pathlib import Path
 from multiprocessing import Process, Queue
 from astropy.io import fits
 from flask import send_from_directory
@@ -131,5 +131,25 @@ class Session(object):
         return result, 500
 
         
-      
+    @staticmethod
+    def clean_up():
+        folder = Path(PATHTO.sessions)
+        if not folder.is_dir():
+            raise ValueError(f"{PATHTO.sessions} is not a valid directory")
+    
+        # Get all subdirectories
+        subfolders = [f for f in folder.iterdir() if f.is_dir()]
+    
+        # Sort by last modification time (most recent first)
+        subfolders.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+    
+        # Keep only the 20 most recent
+        folders_to_delete = subfolders[40:]
+    
+        for f in folders_to_delete:
+            try:
+                shutil.rmtree(f)
+                print(f"Deleted: {f}")
+            except Exception as e:
+                print(f"Error deleting {f}: {e}")     
     
