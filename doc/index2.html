@@ -88,7 +88,9 @@
 	      body: formData,
 	    })
         .then(response => {
-			$("#emptyFileModal").css("display", "none")
+		_paq.push(['trackPageView', 'stonks: submit']);
+
+		$("#emptyFileModal").css("display", "none")
         	if( response.ok ) {
         		fileName = response.headers.get('content-disposition').split('filename=')[1].split(';')[0];
         		return  response.blob()
@@ -96,6 +98,7 @@
             	alert("no variability found")
             } else {
             	response.json().then(function(object) {
+		      
             		if( 'exception' in object){
                 		alert("Internal error: " + object.exception)
             		} else {
@@ -264,6 +267,21 @@
           <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
           <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
         <![endif]-->
+	<script>
+	  	var _paq = window._paq = window._paq || [];
+	 	 /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+	  	_paq.push(['trackPageView']);
+	  	_paq.push(['enableLinkTracking']);
+	  	(function() {
+	    	var u="//xcatdb.unistra.fr/matomo/";
+	    	_paq.push(['setTrackerUrl', u+'matomo.php']);
+	    	_paq.push(['setSiteId', '1']);
+	    	var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+	    	g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+
+	  	})();
+  	
+	</script>
 
 </body>
 </html>
