@@ -689,9 +689,9 @@ class MasterSource:
         filename = f"P{obsid}CAX000VALERT0{str_num}.PDF"
         lc_path = os.path.join(self.session.path,
                                filename)
-        print(f"Saving Lightcurve {lc_path}")
         plt.savefig(lc_path)
         plt.close(fig)
+        print(f"Saving Lightcurve {lc_path}   {os.path.getsize(lc_path)} bytes")
         import psutil
         print("CPU usage (%):", psutil.cpu_percent(interval=1))
 
