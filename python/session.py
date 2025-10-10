@@ -96,7 +96,11 @@ class Session(object):
                 ram = psutil.virtual_memory()
                 print("RAM usage (%):", ram.percent)
                 print("RAM used (GB):", round(ram.used / 1e9, 2))        
+                total, used, free = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
+                print("free ", round((used / total) * 100, 2))
                 tar.add(os.path.join(self.path, pdf), arcname=pdf)
+                total, used, free = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
+                print("free out ", round((used / total) * 100, 2))
         return output
 
     def store_source_list(self, obsmli_path):
@@ -126,6 +130,10 @@ class Session(object):
                 return result, 404
             tarball_path = self.get_tarball()
             directory, filename = os.path.split(tarball_path)
+                
+            total, used, free = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
+            print("free out ", round((used / total) * 100, 2))
+
             return send_from_directory(directory, filename)  , 200      
 
         except Exception as exp:
