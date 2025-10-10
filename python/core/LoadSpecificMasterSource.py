@@ -691,6 +691,7 @@ class MasterSource:
                                filename)
         print(f"Saving Lightcurve {lc_path}")
         plt.savefig(lc_path)
+        plt.close(fig)
 
     def save_json_alert(self, dict_new_det_info, flag_alert, param_holder):
         """Save the alert properties as a JSON file, to be used for a database"""
