@@ -65,5 +65,5 @@ RUN mkdir Data
 RUN mkdir sessions
 
 # Run the production server
-CMD ["gunicorn", "--bind",  "0.0.0.0:5000", "--timeout", "1000",  "rest_api.wsgi_api:application"]
+CMD ["gunicorn", "--bind",  "0.0.0.0:5000", "--sendfile", "--timeout", "1000",  "rest_api.wsgi_api:application"]
 
