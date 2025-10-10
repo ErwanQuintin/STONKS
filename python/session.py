@@ -86,8 +86,16 @@ class Session(object):
    
         output = os.path.join(self.path, f"{tarfile_prefix}.tgz")
         print(f"packing the result in {output}")
+        
         with tarfile.open(output, "w:gz") as tar:
             for pdf in pdfs:
+                import psutil
+                print(pdf)
+                print("CPU usage (%):", psutil.cpu_percent(interval=1))
+        
+                ram = psutil.virtual_memory()
+                print("RAM usage (%):", ram.percent)
+                print("RAM used (GB):", round(ram.used / 1e9, 2))        
                 tar.add(os.path.join(self.path, pdf), arcname=pdf)
         return output
 

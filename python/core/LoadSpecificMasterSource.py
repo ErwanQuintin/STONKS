@@ -692,6 +692,12 @@ class MasterSource:
         print(f"Saving Lightcurve {lc_path}")
         plt.savefig(lc_path)
         plt.close(fig)
+        import psutil
+        print("CPU usage (%):", psutil.cpu_percent(interval=1))
+
+        ram = psutil.virtual_memory()
+        print("RAM usage (%):", ram.percent)
+        print("RAM used (GB):", round(ram.used / 1e9, 2))        
 
     def save_json_alert(self, dict_new_det_info, flag_alert, param_holder):
         """Save the alert properties as a JSON file, to be used for a database"""
