@@ -1,4 +1,5 @@
 # sticked on this version otherowth cmasher fails
+psutil
 matplotlib==3.7.3
 tqdm==4.66.1
 scipy==1.11.3
