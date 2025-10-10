@@ -132,7 +132,7 @@ class Session(object):
             directory, filename = os.path.split(tarball_path)
                 
             total, used, free = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
-            print("free out ", round((used / total) * 100, 2))
+            print("free out ", total, " " , used, " " , free)
 
             return send_from_directory(directory, filename)  , 200      
 
