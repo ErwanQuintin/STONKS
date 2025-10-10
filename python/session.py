@@ -134,7 +134,7 @@ class Session(object):
             total, used, free = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
             print("free out ", total, " " , used, " " , free)
             print("size ", os.path.getsize(tarball_path))
-            return send_from_directory(directory, filename)  , 200      
+            return send_from_directory(directory, filename, as_attachment=True)  , 200      
 
         except Exception as exp:
             traceback.print_exc(file=sys.stdout)
