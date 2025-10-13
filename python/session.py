@@ -89,18 +89,7 @@ class Session(object):
         
         with tarfile.open(output, "w:gz") as tar:
             for pdf in pdfs:
-                import psutil
-                print(pdf)
-                print("CPU usage (%):", psutil.cpu_percent(interval=1))
-        
-                ram = psutil.virtual_memory()
-                print("RAM usage (%):", ram.percent)
-                print("RAM used (GB):", round(ram.used / 1e9, 2))        
-                total, used, free = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
-                print("free ", round((used / total) * 100, 2))
                 tar.add(os.path.join(self.path, pdf), arcname=pdf)
-                total, used, free = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
-                print("free out ", round((used / total) * 100, 2))
 
         return output
 
@@ -130,13 +119,12 @@ class Session(object):
             if result["nb_alerts"] == "0":
                 return result, 404
             tarball_path = self.get_tarball()
+            
+            print(f"send tarball {os.path.getsize(tarball_path)/1024}Kb")
             directory, filename = os.path.split(tarball_path)
-                
-            total, used, free = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
-            print("free out ", total, " " , used, " " , free)
-            print("size ", os.path.getsize(tarball_path))
+            # Ths apparently useless local varaiable prevents 
+            # the flask API to stall when the tarball is too large (e.g., 5.7Mb)   
             retour  = send_from_directory(directory, filename), 200    
-            print("============")
             return retour  
 
         except Exception as exp:
