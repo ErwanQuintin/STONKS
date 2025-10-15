@@ -123,7 +123,7 @@ class Session(object):
             
             print(f"send tarball {os.path.getsize(tarball_path)/1024}Kb")
             directory, filename = os.path.split(tarball_path)
-            return  send_file(tarbal_path), 200
+            return  send_file(tarball_path), 200
 
         except Exception as exp:
             traceback.print_exc(file=sys.stdout)
