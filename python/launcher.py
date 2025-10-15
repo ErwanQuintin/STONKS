@@ -25,6 +25,7 @@ if __name__ == '__main__':
     #New version: images and var alert flags
     for varalert in (1,2,3):
         name = f'FAKE_0693760101_VARALERT{varalert}.gz'
+        name = "stonks.tar.gz"
         filepath = os.path.join(PATHTO.master_sources, name)
         #Session.clean_up(1)
 
@@ -35,5 +36,5 @@ if __name__ == '__main__':
             )
         session = Session(my_file)
         print(session.process_observation())
-        session.get_tarball()
+        #session.get_tarball()
 

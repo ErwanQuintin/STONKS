@@ -18,6 +18,7 @@ Author: Erwan Quintin, erwan.quintin@irap.omp.eu
 
 import numpy as np
 import matplotlib
+matplotlib.use('Agg')
 #matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
