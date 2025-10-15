@@ -65,5 +65,7 @@ RUN mkdir Data
 RUN mkdir sessions
 
 # Run the production server
+# Make sure matplotlib works in headless mode
+ENV MPLBACKEND=Agg
 CMD ["gunicorn", "--bind",  "0.0.0.0:5000", "-w", "4" , "--access-logfile" , "-", "--timeout", "1000",  "rest_api.wsgi_api:application"]
 
