@@ -12,7 +12,7 @@ import shutil
 from pathlib import Path
 from multiprocessing import Process, Queue
 from astropy.io import fits
-from flask import send_from_directory
+from flask import send_file
 from werkzeug.utils import secure_filename
 from constants import PATHTO
 
@@ -109,10 +109,11 @@ class Session(object):
 
             from rest_api.logic import process_one_observation
             q = Queue()
-            p = Process(target=process_one_observation, args=(self, q))
-            p.start()
+            target=process_one_observation(self,q)
+            #p = Process(target=process_one_observation, args=(self, q))
+            #p.start()
             result = q.get()
-            p.join()
+            #p.join()
             if result["status"].startswith("failed"):
                 return result, 500
             
@@ -122,10 +123,7 @@ class Session(object):
             
             print(f"send tarball {os.path.getsize(tarball_path)/1024}Kb")
             directory, filename = os.path.split(tarball_path)
-            # Ths apparently useless local varaiable prevents 
-            # the flask API to stall when the tarball is too large (e.g., 5.7Mb)   
-            retour  = send_from_directory(directory, filename), 200    
-            return retour  
+            return  send_file(tarbal_path), 200
 
         except Exception as exp:
             traceback.print_exc(file=sys.stdout)
