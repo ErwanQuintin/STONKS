@@ -4,6 +4,9 @@ Created on 1 mars 2023
 @author: michel
 '''
 import os
+#import matplotlib
+#matplotlib.use('Agg')
+
 from flask import Flask, request, send_file
 from constants import PATHTO
 from session import Session
@@ -21,6 +24,7 @@ def allowed_file(filename):
 
 @app.route('/stonks/process-obs', methods=['POST'])
 def upload_file():
+    
     if request.method == 'POST':
 
         # check if the post request has the file part
@@ -36,7 +40,11 @@ def upload_file():
                       'message': 'No selected file'}
             return result, 400
         Session.clean_up()
-        return Session(file).process_observation()
+        return  Session(file).process_observation()
+    else:
+        result = {'status': 'ko',
+                  'message': f'Method {request.metho} not supported'}
+        return result, 400
                    
 @app.route("/stonks/doc")
 def doc():
