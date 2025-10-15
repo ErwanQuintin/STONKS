@@ -4,6 +4,10 @@ Created on 28 févr. 2023
 @author: michel
 '''
 import traceback
+# make sure we have the good context
+import matplotlib
+matplotlib.use('Agg')
+#matplotlib.use('TkAgg')
 import numpy as np
 from astropy.io import fits
 from astropy.table import Table
@@ -136,6 +140,7 @@ def process_one_observation(session, queue):
             param_holder.pointing_type = flag_pointing_type
 
             print (f"Processing source {src_num}")
+
             nb_alerts += process_one_source(param_holder, dict_observation_metadata, session, image_data, image_wcs)
             nb_src += 1
         if queue is not None:
@@ -149,7 +154,6 @@ def process_one_observation(session, queue):
         traceback.print_exc()
         if queue is not None:
             queue.put({"status": "failed", "exception": f"{str(exp)}"})   
-        
          
 def process_one_source(param_holder, observation_metadata, session, image_data, image_wcs):
     tab_alerts=[]
@@ -193,5 +197,4 @@ def process_one_source(param_holder, observation_metadata, session, image_data, 
             ms.save_lightcurve(dict_det_info, flag_alert, image_data, image_wcs)
             ms.save_json_alert(dict_det_info, flag_alert, param_holder)
             nb_alerts += 1
- 
     return nb_alerts
