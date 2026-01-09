@@ -123,6 +123,7 @@ class Session(object):
             tarball_path = self.get_tarball()
             
             print(f"send tarball {os.path.getsize(tarball_path)/1024}Kb")
+
             return  send_file(tarball_path), 200
 
         except Exception as exp:
