@@ -167,7 +167,7 @@ def _multiproc_runner(args, nb_src):
     """run the source processing in // on as many CPU as available (limited to 16)
     """
     start = time.time()
-    cpus = cpu_count() if cpu_count() <= 16 else cpu_count
+    cpus = cpu_count() if cpu_count() <= 16 else 16
     print (f"Processing {nb_src} sources on {cpus} cpus")
     with Pool(cpus) as pool:
         results = pool.map(_multiproc_worker, args)
