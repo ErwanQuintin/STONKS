@@ -34,6 +34,7 @@ class Session(object):
         self.inputtarpath  = os.path.join(self.path, self.filename)
         print(f"save {self.filename} in {self.inputtarpath}")
         file.save(self.inputtarpath)
+        print(f"size = {os.path.getsize(self.inputtarpath)}b")
 
         if self.filename.endswith('.FIT'):
             print('old version with only OBMSLI, no image found')
@@ -97,7 +98,7 @@ class Session(object):
         shutil.copy(obsmli_path, self.path)
 
     def process_observation(self):
-        """run the processinf
+        """run the processing
         local import to avid circular imports Session<->logic
         """
         try:
@@ -109,11 +110,11 @@ class Session(object):
 
             from rest_api.logic import process_one_observation
             q = Queue()
-            target=process_one_observation(self,q)
-            #p = Process(target=process_one_observation, args=(self, q))
-            #p.start()
+            #target=process_one_observation(self,q)
+            p = Process(target=process_one_observation, args=(self, q))
+            p.start()
             result = q.get()
-            #p.join()
+            p.join()
             if result["status"].startswith("failed"):
                 return result, 500
             
@@ -122,8 +123,7 @@ class Session(object):
             tarball_path = self.get_tarball()
             
             print(f"send tarball {os.path.getsize(tarball_path)/1024}Kb")
-            directory, filename = os.path.split(tarball_path)
-            return  send_file(tarbal_path), 200
+            return  send_file(tarball_path), 200
 
         except Exception as exp:
             traceback.print_exc(file=sys.stdout)
