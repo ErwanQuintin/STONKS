@@ -4,21 +4,23 @@ Created on 28 févr. 2023
 @author: michel
 '''
 import traceback
+import time
+import psutil
+import os
 # make sure we have the good context
 import matplotlib
 matplotlib.use('Agg')
 #matplotlib.use('TkAgg')
 import numpy as np
+from multiprocessing import Pool, cpu_count
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
 from astropy import wcs
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-import json
 
 from core.STONKS_PreComputed_Position_alert import transient_alert
-from session import Session
 
 class ParamHolder:
     """
@@ -44,7 +46,6 @@ class ParamHolder:
         self.choice_pi = None
         self.publishable = None
         self.pointing_type = None
-
 
 def process_one_observation(session, queue):
     print(f"Loading EPIC source list {session.obsmli_path}")
@@ -110,6 +111,7 @@ def process_one_observation(session, queue):
         tab_band_fluxerr = []
         nb_src = 0
         nb_alerts = 0
+        args = [];
         for line in sources_raw["ERR_EP_1_FLUX","ERR_EP_2_FLUX","ERR_EP_3_FLUX","ERR_EP_4_FLUX","ERR_EP_5_FLUX"]:
             tab_band_fluxerr.append([[list(line)], [list(line)]])
     
@@ -138,11 +140,17 @@ def process_one_observation(session, queue):
             param_holder.choice_pi = choice_PI
             param_holder.publishable = publishable
             param_holder.pointing_type = flag_pointing_type
+            
+            print (f"Packing data for source {src_num}")
 
-            print (f"Processing source {src_num}")
-
-            nb_alerts += process_one_source(param_holder, dict_observation_metadata, session, image_data, image_wcs)
+            # Mono processing can restored by uncommenting this line
+            #nb_alerts += process_one_source(param_holder, dict_observation_metadata, session, image_data, image_wcs)
+            args.append((param_holder, dict_observation_metadata, session, image_data, image_wcs))
             nb_src += 1
+
+        # Mono processing can restored by commenting this line
+        nb_alerts = _multiproc_runner(args, nb_src)
+ 
         if queue is not None:
             queue.put({"status": "succeed",
                        "obsid": dict_observation_metadata["ObsID"],
@@ -154,6 +162,29 @@ def process_one_observation(session, queue):
         traceback.print_exc()
         if queue is not None:
             queue.put({"status": "failed", "exception": f"{str(exp)}"})   
+
+def _multiproc_runner(args, nb_src):
+    """run the source processing in // on as many CPU as available (limited to 16)
+    """
+    start = time.time()
+    cpus = cpu_count() if cpu_count() <= 16 else cpu_count
+    print (f"Processing {nb_src} sources on {cpus} cpus")
+    with Pool(cpus) as pool:
+        results = pool.map(_multiproc_worker, args)
+    elapsed = time.time() - start
+    print(f"Done in {elapsed:.3f} s")
+    return sum(results)
+
+def _multiproc_worker(args):
+    """Wrapper for the source processing (used by Pool)
+    """
+    process = psutil.Process(os.getpid())
+    mem = process.memory_info().rss  # in bytes
+    print(f"Process src_num ={args[0].src_num} (Memory used: {mem / 1024**2:.2f} MB)")
+    output =  process_one_source(*args)
+    print(f"src_num ={args[0].src_num} done")
+    return output
+
          
 def process_one_source(param_holder, observation_metadata, session, image_data, image_wcs):
     tab_alerts=[]
