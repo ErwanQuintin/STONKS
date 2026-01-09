@@ -268,14 +268,12 @@ def match_Simbad(ra_target, dec_target, pos_err):
                       'Candidate_XB*': 'CompactObject', 'Candidate_BH': 'CompactObject', 'NS': 'CompactObject',
                       'Candidate_NS': 'CompactObject', 'Neutron*': 'CompactObject', 'Candidate_CV*': 'CompactObject',
                       'Candidate_Nova': 'CompactObject','HighMassXBin':'CompactObject'}
-
     result_table = Simbad.query_region(SkyCoord(ra_target, dec_target,
                                                       unit=(u.deg, u.deg), frame='icrs'),
                                        radius=10*u.arcsec)
     # Id result_table is none Simbad raises a script error (don't mind)
     if result_table and len(result_table) > 0:
         result = result_table[0]
-        print(result.keys())
         if result["otype"] in dic_classifier.keys():
             simbad_type = dic_classifier[result["otype"]]
         else:
@@ -375,7 +373,6 @@ def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_e
             info_source.append(0)
             info_source.append(new_ms.simbad_type)
             info_source.append(new_ms.simbad_name)
-
 
     return tab_alerts, flag_alerts, info_source
 
