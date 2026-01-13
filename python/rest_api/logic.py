@@ -21,7 +21,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from core.STONKS_PreComputed_Position_alert import transient_alert
-
+from constants import CPUS
 class ParamHolder:
     """
     structure carrying all source parameter in one shot
@@ -167,7 +167,7 @@ def _multiproc_runner(args, nb_src):
     """run the source processing in // on as many CPU as available (limited to 16)
     """
     start = time.time()
-    cpus = cpu_count() if cpu_count() <= 16 else 16
+    cpus = cpu_count() if cpu_count() <= CPUS.max else CPUS.max
     print (f"Processing {nb_src} sources on {cpus} cpus")
     with Pool(cpus) as pool:
         results = pool.map(_multiproc_worker, args)
@@ -189,6 +189,7 @@ def _multiproc_worker(args):
 def process_one_source(param_holder, observation_metadata, session, image_data, image_wcs):
     tab_alerts=[]
     tab_dic_infos = []
+
     nb_alerts = 0
     dict_detection_info={}
     dict_detection_info["ObsID"]=observation_metadata["ObsID"]
@@ -206,7 +207,6 @@ def process_one_source(param_holder, observation_metadata, session, image_data, 
     dict_detection_info['ChoicePI']=f'{param_holder.choice_pi}'
     dict_detection_info['Publishable']=f'{param_holder.publishable}'
     dict_detection_info['PointingType']=f'{param_holder.pointing_type}'
-
 
     result_alert, flag_alert, info_source = transient_alert(session,
                                    session.obsid,
