@@ -193,11 +193,11 @@ def compute_upper_limit(ra, dec, flux, date_obs):
     ecf_dic = {"PN":{"Open":4.1236,"Thin1":3.3243,"Thin2":3.3243,"Medium":3.1924,"Thick":2.5928},
                "M1":{"Open":1.0916,"Thin1":0.929,"Thin2":0.929,"Medium":0.900,"Thick":0.7779},
                "M2":{"Open":1.1003,"Thin1":0.9358,"Thin2":0.9358,"Medium":0.906,"Thick":0.7829}}
-
     if flux>1e-12:
         tab_upper_limits = rpx.query_radec(ra=[ra], dec=[dec])
     else:
         tab_upper_limits = rpx.query_radec(ra=[ra], dec=[dec], obstype="pointed")
+
     xmm_ul, xmm_ul_dates, slew_ul, slew_ul_dates= [],[],[],[]
     if len(tab_upper_limits)>0:
         ul_dates = Time(tab_upper_limits['start_date'],format="isot").mjd
@@ -346,6 +346,7 @@ def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_e
                     if (np.nanmin(xmm_ul+slew_ul) < (flux-flux_err)/5) or var_flag:
                         new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
                                                        date)
+
                         new_ms = MasterSource(session, - 1, [new_source], new_source.ra, new_source.dec, new_source.poserr, [])
                         new_ms.has_short_term_var = var_flag
                         new_ms.xmm_ul = xmm_ul
@@ -353,13 +354,16 @@ def transient_alert(session, obsid, ra_target, dec_target, pos_err, flux, flux_e
                         new_ms.slew_ul = slew_ul
                         new_ms.slew_ul_dates = slew_ul_dates
                         new_ms.var_ratio = (flux-flux_err)/np.nanmin(xmm_ul+slew_ul)
+
                         new_ms.simbad_type, new_ms.simbad_name = match_Simbad(ra_target,dec_target,pos_err)
+
                         tab_alerts.append(new_ms)
                         flag_alerts.append('First Detection')
                         info_source.append((flux-flux_err)/np.nanmin(xmm_ul+slew_ul))
                         info_source.append(new_ms.simbad_type)
                         info_source.append(new_ms.simbad_name)
-            except:
+            except Exception as e:
+                print("Cannot get the upper limit: source ignored: " , e)
                 pass
         elif var_flag:
             new_source = create_new_Source(ra_target, dec_target, pos_err, flux, flux_err, band_fluxes, band_fluxerr,
