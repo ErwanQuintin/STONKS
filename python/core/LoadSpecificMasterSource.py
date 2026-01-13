@@ -738,7 +738,7 @@ class MasterSource:
             json.dump(dict_new_det_info, outfile, indent=1)
 
 
-def load_source_on_position(session, cat, ra_target, dec_target):
+def load_source_on_position_NEVER_USED(session, cat, ra_target, dec_target):
     """
     This loads the catalog data for the sources around a given position. Starts by constraining the catalog to the
     position, then loads the corresponding Source objects.
@@ -746,11 +746,12 @@ def load_source_on_position(session, cat, ra_target, dec_target):
     :return: Dictionary, with the name of the source as a key and the Source object as a value
     """
     #print(f"Loading {cat}...")
+    sources_around = str(cat)+'_MatchOnSource.fits'
     cmd = f"{PATHTO.stilts_cmd} tpipe {os.path.join(PATHTO.catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<20\"' \
-    out={os.path.join(session.paths, str(cat)+'_MatchOnSource.fits')}"
+    out={os.path.join(session.paths, sources_around)}"
     cmd = shlex.split(cmd)
     subprocess.run(cmd)
-    raw_data = fits.open(os.path.join(session.path, str(cat)+'_MatchOnSource.fits'), memmap=True)
+    raw_data = fits.open(os.path.join(session.path, sources_around), memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     sources_raw = sources_raw[np.argsort(sources_raw[src_names[cat]])]
@@ -838,7 +839,7 @@ def load_source_on_position(session, cat, ra_target, dec_target):
     #subprocess.run(cmd_cleanup)
     return dic_sources
 
-def load_source_on_name(session, cat, given_name, ra_target, dec_target):
+def load_source_on_name(session, cat, given_name, ra_target, dec_target, id=""):
     """
     This loads the catalog data for the sources around a given position. Starts by constraining the catalog to the
     position, then loads the corresponding Source objects.
@@ -846,11 +847,13 @@ def load_source_on_name(session, cat, given_name, ra_target, dec_target):
     :return: Dictionary, with the name of the source as a key and the Source object as a value
     """
     #print(f"Loading {cat}...")
+    id = given_name.replace(" ", "_").replace(".", "_")
+    sources_around = str(cat) + '_MatchOnSource_' + id + '.fits'
     cmd = f"{PATHTO.stilts_cmd} tpipe {os.path.join(PATHTO.catalogs,str(cat)+'.fits')} cmd='select \"skyDistanceDegrees(RA,DEC,{ra_target},{dec_target})*60<1\"' \
-    out={os.path.join(session.path,str(cat)+'_MatchOnSource.fits')}"
+    out={os.path.join(session.path,sources_around)}"
     cmd = shlex.split(cmd)
     subprocess.run(cmd)
-    raw_data = fits.open(os.path.join(session.path,str(cat)+'_MatchOnSource.fits'), memmap=True)
+    raw_data = fits.open(os.path.join(session.path, sources_around), memmap=True)
     sources_raw = raw_data[1].data
     sources_raw = Table(sources_raw)
     sources_raw = sources_raw[sources_raw[src_names[cat]]==given_name]
@@ -1006,10 +1009,12 @@ def load_specific_master_sources(session, ms_id,obsid, ra_target, dec_target):
     line = sources_raw[sources_raw["MS_ID"]==ms_id]
     tab_sources_for_this_ms = []
     dic_master_sources={}
+    cpt=0
     for cat in catalogs[:-1]:
         if line[cat]!='':
             name=line[cat][0].strip()
-            source = load_source_on_name(session, cat, name,  ra_target, dec_target)
+            source = load_source_on_name(session, cat, name,  ra_target, dec_target, id=str(cpt))
+            cpt += 1
             if source != []:
                 tab_sources_for_this_ms.append(source)
         ms_id = line["MS_ID"][0]
