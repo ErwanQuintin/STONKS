@@ -8,7 +8,7 @@ from astropy.coordinates import ICRS
 from astropy.table import Table
 from astropy_healpix import HEALPix
 from pandas import DataFrame as df
-
+from constants import XSA
 
 def _check_kwargs(obstype, instrum):
     if obstype not in ["slew", "pointed", None]:
@@ -45,17 +45,22 @@ def _npixels_to_coords(npixels, level):
 def _query_xsa_uls(payload, obstype=None, instrum=None):
     _check_kwargs(obstype, instrum)
 
-    r = requests.get(
-        "http://nxsa.esac.esa.int/nxsa-sl/servlet/get-uls", params=payload
-    )
-    r.raise_for_status()
+    try:
+        r = requests.get(
+            XSA.url,
+            params=payload,
+            timeout=XSA.timeout
+        )
+        r.raise_for_status()
 
-    uls = Table.from_pandas(df.from_records(r.json()))
-    if uls:
-        uls = _filter_uls(uls, obstype, instrum)
+        uls = Table.from_pandas(df.from_records(r.json()))
+        if uls:
+            uls = _filter_uls(uls, obstype, instrum)
 
-    return uls
-
+            return uls
+    except requests.Timeout as e:
+        print(e)
+        raise Exception() from e
 
 def query_radec(ra, dec, **kwargs):
     """
