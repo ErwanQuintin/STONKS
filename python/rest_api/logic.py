@@ -55,9 +55,15 @@ def process_one_observation(session, queue):
             raw_data = fits.open(session.image_path, memmap=True)
             image_wcs = wcs.WCS(raw_data[0].header)
             image_data = raw_data[0].data
-            ra_target, dec_target = raw_data[0].header['RA_OBJ'], raw_data[0].header['DEC_OBJ']
-            target_position = SkyCoord(ra=ra_target, dec=dec_target, unit='deg')
-            flag_pointing_type='target'
+            target_position = None
+            try:
+                ra_target, dec_target = raw_data[0].header['RA_OBJ'], raw_data[0].header['DEC_OBJ']
+                target_position = SkyCoord(ra=ra_target, dec=dec_target, unit='deg')
+                flag_pointing_type='target'
+            except Exception as e: 
+                print(f'cannot interpret object coordinates in FITS image {e}')
+                image_data=None
+                image_wcs =None
         else:
             image_data=None
             image_wcs =None
@@ -69,7 +75,7 @@ def process_one_observation(session, queue):
         else:
             print('keyword for PI choice not present - assume no publishable alert')
             choice_PI=3
-        if session.image_path is None:
+        if session.image_path is None or target_position is None:
             #If no image was given, we use the pointing position as a proxy to the target position, NOT IDEAL
             ra_target, dec_target = raw_data[0].header['RA_PNT'], raw_data[0].header['DEC_PNT']
             target_position = SkyCoord(ra=ra_target, dec=dec_target, unit='deg')
