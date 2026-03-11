@@ -44,7 +44,7 @@ rc('text', usetex=True)
 rc('font', **{'family': 'serif', 'serif': ['Computer Modern Roman']})
 
 style="bmh"
-cmap_to_use= "cmr.torch"#"turbo"
+cmap_to_use= "cmr.pride"#"turbo"
 
 
 #path_to_catalogs = "/home/erwan/Documents/PhD/LongTermVariability/LongTermVariability_Python/NewMatchMethod/CleanCatalogs/Catalogs/FullData/"
@@ -55,7 +55,7 @@ cmap_to_use= "cmr.torch"#"turbo"
 #The NewXMM catalog is a placeholder, used for new detections for the pipeline alert system. It will have the same
 #properties as XMM where needed.
 
-catalogs = ["XMM","Chandra","Swift","eRosita","Slew","RASS","WGACAT","Stacked","NewXMM"]
+catalogs = ["XMM","Chandra","Swift","eFEDS","eRASS1","Slew","RASS","WGACAT","Stacked","NewXMM"]
 
 posErr_Names = {}
 src_names={}
@@ -80,7 +80,8 @@ short_term_var_name={"XMM":"VAR_FLAG","Chandra":"var_code"}
 flux_names={"XMM": "EP_8_FLUX",
             "Chandra":"flux_aper_b",
             "Swift":"Flux",
-            "eRosita":"ML_FLUX",
+            "eFEDS":"ML_FLUX",
+            "eRASS1":"ML_FLUX_1",
             "Slew":"Flux",
             "Stacked":"EP_FLUX",
             "RASS":"Flux",
@@ -88,7 +89,8 @@ flux_names={"XMM": "EP_8_FLUX",
 flux_error_names={"XMM": ["EP_8_FLUX_ERR","EP_8_FLUX_ERR"],
                   "Chandra":["flux_aper_b_negerr","flux_aper_b_poserr"],
                   "Swift":["FluxErr_neg","FluxErr_pos"],
-                  "eRosita":["ML_FLUX_ERR","ML_FLUX_ERR"],
+                  "eFEDS":["ML_FLUX_ERR","ML_FLUX_ERR"],
+                  "eRASS1":["ML_FLUX_LOWERR_1","ML_FLUX_UPERR_1"],
                   "Slew":["FluxErr","FluxErr"],
                   "Stacked":["EP_FLUX_ERR","EP_FLUX_ERR"],
                   "RASS":["FluxErr","FluxErr"],
@@ -97,7 +99,8 @@ conv_factors = {"XMM": 1/0.999,
                 "NewXMM": 1/0.999,
                 "Chandra":1/0.69,
                 "Swift":1/0.9,
-                "eRosita":1/0.39,
+                "eFEDS":1/0.39,
+                "eRASS1":1/0.39,
                 "Slew":1/0.999,
                 "Stacked":1/0.999,
                 "RASS":1/0.41,
@@ -105,7 +108,8 @@ conv_factors = {"XMM": 1/0.999,
 time_names={"XMM": "MJD_START",
             "Chandra":"gti_mjd_obs",
             "Swift":"MidTime_MJD",
-            "eRosita":"MJD_OBS",
+            "eFEDS":"MJD_OBS",
+            "eRASS1":"MJD",
             "Slew":"DATE_OBS",
             "Stacked":"MJD_FIRST",
             "RASS":"OBS_DATE_1",
@@ -117,7 +121,8 @@ band_flux_names = {"XMM":["EP_1_FLUX","EP_2_FLUX","EP_3_FLUX","EP_4_FLUX","EP_5_
                   "Chandra":["flux_aper_s","flux_aper_m","flux_aper_h"],
                   "Swift":["Flux1","Flux2","Flux3"],
                   "Slew":["Flux6","Flux7"],
-                  "eRosita":['ML_FLUX_b1','ML_FLUX_b2','ML_FLUX_b3','ML_FLUX_b4'],
+                  "eFEDS":['ML_FLUX_b1','ML_FLUX_b2','ML_FLUX_b3','ML_FLUX_b4'],
+                  "eRASS1":['ML_FLUX_P1','ML_FLUX_P2','ML_FLUX_P3','ML_FLUX_P4','ML_FLUX_P5'],
                   "RASS":["Flux1","Flux3","Flux4"],
                   "WGACAT":["Flux1","Flux2","Flux3"],
                   "Stacked":["EP_1_FLUX","EP_2_FLUX","EP_3_FLUX","EP_4_FLUX","EP_5_FLUX"],
@@ -129,8 +134,10 @@ band_fluxerr_names = {"XMM":[["EP_1_FLUX_ERR","EP_2_FLUX_ERR","EP_3_FLUX_ERR","E
                                 ["flux_aper_s_poserr","flux_aper_m_poserr","flux_aper_h_poserr"]],
                      "Swift":[["FluxErr1_neg","FluxErr2_neg","FluxErr3_neg"],["FluxErr1_pos","FluxErr2_pos","FluxErr3_pos"]],
                      "Slew":[["Flux6Err","Flux7Err"],["Flux6Err","Flux7Err"]],
-                     "eRosita":[['ML_FLUX_ERR_b1','ML_FLUX_ERR_b2','ML_FLUX_ERR_b3','ML_FLUX_ERR_b4'],
+                     "eFEDS":[['ML_FLUX_ERR_b1','ML_FLUX_ERR_b2','ML_FLUX_ERR_b3','ML_FLUX_ERR_b4'],
                                       ['ML_FLUX_ERR_b1','ML_FLUX_ERR_b2','ML_FLUX_ERR_b3','ML_FLUX_ERR_b4']],
+                     "eRASS1":[['ML_FLUX_LOWERR_P1','ML_FLUX_LOWERR_P2','ML_FLUX_LOWERR_P3','ML_FLUX_LOWERR_P4','ML_FLUX_LOWERR_P5'],
+                                      ['ML_FLUX_UPERR_P1','ML_FLUX_UPERR_P2','ML_FLUX_UPERR_P3','ML_FLUX_UPERR_P4','ML_FLUX_UPERR_P5']],
                      "RASS":[["FluxErr1","FluxErr3","FluxErr4"],["FluxErr1","FluxErr3","FluxErr4"]],
                      "WGACAT":[["FluxErr1","FluxErr2","FluxErr3"],["FluxErr1","FluxErr2","FluxErr3"]],
                      "Stacked": [["EP_1_FLUX_ERR", "EP_2_FLUX_ERR", "EP_3_FLUX_ERR", "EP_4_FLUX_ERR", "EP_5_FLUX_ERR"],
@@ -143,7 +150,8 @@ band_center = {"XMM":[0.35,0.75,1.5,3.25,8.25],
                "Chandra":[0.85,1.6,4.5],
                "Swift":[0.65,1.5,6],
                "Slew":[1.1,7],
-               "eRosita":[0.35,0.75,1.5,3.25],
+               "eFEDS":[0.35,0.75,1.5,3.25],
+               "eRASS1":[0.35,0.75,1.5,3.25,6.5],
                "RASS":[0.25,0.7,1.45],
                "WGACAT":[0.25,0.7,1.45],
                "Stacked":[0.35,0.75,1.5,3.25,8.25],
@@ -154,7 +162,8 @@ band_half_width = {"XMM":[0.15,0.25,0.5,1.25,3.75],
               "Chandra":[0.35,0.4,2.5],
               "Swift":[0.35,0.5,4],
               "Slew":[0.9,5],
-              "eRosita":[0.15,0.25,0.5,1.25],
+              "eFEDS":[0.15,0.25,0.5,1.25],
+              "eRASS1":[0.15,0.25,0.5,1.25,1.5],
               "RASS":[0.15,0.2,0.55],
               "WGACAT":[0.15,0.2,0.55],
               "Stacked":[0.15,0.25,0.5,1.25,3.75],
@@ -183,7 +192,7 @@ for cat in optical_catalogs:
     frequencies_half_width[cat]  = [(freq_max-freq_min)/2 for (freq_max, freq_min) in zip(frequences_max,frequences_min)]
 
 #Allows to define the limiting index between what is considered soft band (<2keV) and hard band, for each instrument
-hr_bandlimit_index = {"XMM":3,"NewXMM":3,"Chandra":2,"Swift":2,"Slew":1,"eRosita":3,"RASS":3,"WGACAT":3,"Stacked":3}
+hr_bandlimit_index = {"XMM":3,"NewXMM":3,"Chandra":2,"Swift":2,"Slew":1,"eFEDS":3,"eRASS1":3,"RASS":3,"WGACAT":3,"Stacked":3}
 
 #Conversion factors used to convert the flux in the instrument full band to the 0.1-12 keV band, assuming a spectral
 #shape given by a standard powerlaw of photon index Gamma=1.7 and absorption nH=3e20 cm-2.
@@ -214,16 +223,18 @@ dic_soft_threshold={'XMM': -0.415,
                     'Stacked': -0.415,
                     'Chandra': -0.33,
                     'Swift': -0.4,
-                    'eRosita': -0.62}#For Gamma=2.5
+                    'eFEDS': -0.62,
+                    'eRASS1': -0.62}#For Gamma=2.5
 dic_hard_threshold={'XMM': 0.88,
                     'NewXMM': 0.88,
                     'Slew': 0.88,
                     'Stacked': 0.88,
                     'Chandra': 0.74,
                     'Swift': 0.84,
-                    'eRosita': 0.45}#For Gamma=0.5
+                    'eFEDS': 0.45,
+                    'eRASS1': 0.45}#For Gamma=0.5
 
-hr_track_markers = {"XMM":"o","NewXMM":'o',"Chandra":"v","Swift":"s","Slew":"P","eRosita":"^","RASS":"d","WGACAT":"d","Stacked":"*"}
+hr_track_markers = {"XMM":"o","NewXMM":'o',"Chandra":"v","Swift":"s","Slew":"P","eFEDS":"^","eRASS1":"^","RASS":"d","WGACAT":"d","Stacked":"*"}
 
 class Source:
     """
@@ -505,12 +516,12 @@ class MasterSource:
         3. DSS Image
         :return: Nothing
         """
-        cmap = cmr.take_cmap_colors('cmr.ocean', N=8, cmap_range=(0., 0.9))[::-1]
-        colors = {}
-        order = [7, 0, 4, 1, 3, 2, 5, 6]
-        for cat, ind in zip(catalogs, order):
-            colors[cat] = cmap[ind]
-        colors["NewXMM"] = "darkred"
+        #cmap = cmr.take_cmap_colors('cmr.ocean', N=8, cmap_range=(0., 0.9))[::-1]
+        #colors = {}
+        #order = [7, 0, 4, 1, 3, 2, 5, 6]
+        #for cat, ind in zip(catalogs, order):
+        #    colors[cat] = cmap[ind]
+        #colors["NewXMM"] = "darkred"
 
         fig, [[ax1, ax2], [ax3,ax4]] = plt.subplots(2,2, figsize=(10,10))
 
