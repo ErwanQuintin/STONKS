@@ -788,7 +788,7 @@ def load_source_on_position_NEVER_USED(session, cat, ra_target, dec_target):
         obsids = np.split(np.array(sources_raw[obsid_names[cat]]), indices_for_source)
     else:
         obsids = [[] for elt in indices_for_source]
-    if cat in ("XMM","Chandra"):
+    if cat in ("XMM"):#,"Chandra"):
         short_term_var_flags = np.split(np.array(sources_raw[short_term_var_name[cat]]), indices_for_source)
     else:
         short_term_var_flags = [[] for elt in indices_for_source]
@@ -887,7 +887,7 @@ def load_source_on_name(session, cat, given_name, ra_target, dec_target, id=""):
             obsids = np.array(sources_raw[obsid_names[cat]])
         else:
             obsids = []
-        if cat in ("XMM","Chandra"):
+        if cat in ("XMM"):#,"Chandra"): We remove the use of Chandra short term variability, at least for now
             short_term_var_flags = np.array(sources_raw[short_term_var_name[cat]])
         else:
             short_term_var_flags = []
