@@ -44,7 +44,7 @@ class Cache(Thread):
         # get the current time 
         current_time = time.time() 
         if len(files)  < max_length:
-            print(f" {len(files)}  sessions in cache: not need to clean up") 
+            print(f" {len(files)}  folder(s) in cache: not need to clean up") 
             return
         # loop over all the files 
         for session in files: 
@@ -63,6 +63,7 @@ class Cache(Thread):
             print("Cache cleanup")
             Cache._clean_precomputed(PATHTO.precomputed_obsids, CACHE.precomputed_depth)
             Cache._clean_sessions(PATHTO.sessions, CACHE.number_of_cached_sessions)
+            Cache._clean_sessions(PATHTO.alert_lightcurves, CACHE.number_of_cached_sessions)
             time.sleep(CACHE.cleanup_delay)
               
     

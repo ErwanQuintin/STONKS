@@ -12,6 +12,7 @@ class PATHTO:
     stilts_cmd = os.path.join(basedir, "stilts/stilts")
     sessions = os.path.join(basedir, 'sessions')
     precomputed_obsids = os.path.join(master_sources, 'PreComputedObsidMatches')
+    alert_lightcurves = os.path.join(master_sources, 'AlertsLightcurves')
 print(f"working from {PATHTO.sessions}")
 
 class CACHE:
