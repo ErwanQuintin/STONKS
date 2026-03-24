@@ -14,6 +14,6 @@ print("starting cache monitoring")
 Cache.running = True
 Cache().start()    
 print("cache monitoring started")
-print("Mplt backend ",  os.environ["MPLBACKEND"])
+#print("Mplt backend ",  os.environ["MPLBACKEND"])
 if __name__ == "__main__":
     application.run()
