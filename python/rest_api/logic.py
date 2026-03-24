@@ -70,8 +70,8 @@ def process_one_observation(session, queue):
 
         #Loads the data from the sources
         raw_data = fits.open(session.obsmli_path, memmap=True)
-        if 'VARALERT' in raw_data[0].header.keys():
-            choice_PI = raw_data[0].header['VARALERT']
+        if 'VARALERT' in raw_data[1].header.keys():
+            choice_PI = raw_data[1].header['VARALERT']
         else:
             print('keyword for PI choice not present - assume no publishable alert')
             choice_PI=3
