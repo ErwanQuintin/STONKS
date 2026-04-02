@@ -16,7 +16,7 @@ UPLOAD_FOLDER = '/path/to/the/uploads'
 ALLOWED_EXTENSIONS = ['zip','ZIP','tar','TAR','gz','GZ', 'fit', 'fits', 'FITS', 'FIT']
 app = Flask(__name__)
 app.secret_key = "super secret key"
-app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024    # 1 Mb limit
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 5   # 5 Mb limit
   
 def allowed_file(filename):    
     return '.' in filename and \
