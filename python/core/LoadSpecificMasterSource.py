@@ -1038,7 +1038,7 @@ def load_specific_master_sources(session, ms_id,obsid, ra_target, dec_target):
         #    ms.flux_lum_conv_factor = 4*np.pi*(ms.glade_distance*3.086E+24)**2
         dic_master_sources[ms_id] = ms
     load_specific_XMM_upperlimits(dic_master_sources,ms_id,obsid)
-    #load_Chandra_upperlimits(dic_master_sources)
+    load_Chandra_upperlimits(dic_master_sources)
     #print("Master sources loaded!")
     #cmd_cleanup=f"rm {path_to_master_sources}Master_source_MatchOnSource.fits"
     #cmd_cleanup = shlex.split(cmd_cleanup)
