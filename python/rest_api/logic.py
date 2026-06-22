@@ -12,6 +12,7 @@ import matplotlib
 matplotlib.use('Agg')
 #matplotlib.use('TkAgg')
 import numpy as np
+import multiprocessing as mp
 from multiprocessing import Pool, cpu_count
 from astropy.io import fits
 from astropy.table import Table
@@ -175,6 +176,7 @@ def _multiproc_runner(args, nb_src):
     start = time.time()
     cpus = cpu_count() if cpu_count() <= CPUS.max else CPUS.max
     print (f"Processing {nb_src} sources on {cpus} cpus")
+    mp.set_start_method('spawn')  # or 'fork' or 'forkserver'
     with Pool(cpus) as pool:
         results = pool.map(_multiproc_worker, args)
     elapsed = time.time() - start
