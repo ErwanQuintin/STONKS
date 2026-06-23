@@ -40,7 +40,9 @@ def upload_file():
                       'message': 'No selected file'}
             return result, 400
         Session.clean_up()
-        return  Session(file).process_observation()
+        retour =  Session(file).process_observation()
+        return retour
+
     else:
         result = {'status': 'ko',
                   'message': f'Method {request.metho} not supported'}

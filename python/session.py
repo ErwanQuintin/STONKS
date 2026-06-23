@@ -110,11 +110,14 @@ class Session(object):
 
             from rest_api.logic import process_one_observation
             q = Queue()
-            #target=process_one_observation(self,q)
-            p = Process(target=process_one_observation, args=(self, q))
-            p.start()
+            process_one_observation(self,q)
+            #print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 1")
+            #p = Process(target=process_one_observation, args=(self, q))
+            #print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            #p.start()
+            #import time
+            #p.join()
             result = q.get()
-            p.join()
             if result["status"].startswith("failed"):
                 return result, 500
             

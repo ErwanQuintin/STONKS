@@ -88,14 +88,13 @@
 	      body: formData,
 	    })
         .then(response => {
-		_paq.push(['trackPageView', 'stonks: submit']);
-
+        _paq.push(['trackPageView', 'stonks: submit']);
 		$("#emptyFileModal").css("display", "none")
         	if( response.ok ) {
         		fileName = response.headers.get('content-disposition').split('filename=')[1].split(';')[0];
         		return  response.blob()
             } else if( response.status == 404 ) {
-            	alert("no variability found")
+                alert("no variability found")
             } else {
             	response.json().then(function(object) {
 		      

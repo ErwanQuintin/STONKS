@@ -23,6 +23,13 @@ from astropy.coordinates import SkyCoord
 
 from core.STONKS_PreComputed_Position_alert import transient_alert
 from constants import CPUS
+
+try: 
+    mp.set_start_method('spawn')  # or 'fork' or 'forkserver'
+except RuntimeError:
+    # Start method already set, proceed
+    pass
+
 class ParamHolder:
     """
     structure carrying all source parameter in one shot
@@ -156,10 +163,14 @@ def process_one_observation(session, queue):
             nb_src += 1
 
         # Mono processing can restored by commenting this line
-        nb_alerts = _multiproc_runner(args, nb_src)
+        nb_alerts, exceptions = _multiproc_runner(args, nb_src)
  
         if queue is not None:
-            queue.put({"status": "succeed",
+            # something wrong happened on some source
+            if len(exceptions) > 0:
+                queue.put({"status": "failed", "exception": f"{exceptions}"})   
+            else: 
+                queue.put({"status": "succeed",
                        "obsid": dict_observation_metadata["ObsID"],
                        "nb_sources": str(nb_src),
                        "nb_alerts": str(nb_alerts),
@@ -176,12 +187,20 @@ def _multiproc_runner(args, nb_src):
     start = time.time()
     cpus = cpu_count() if cpu_count() <= CPUS.max else CPUS.max
     print (f"Processing {nb_src} sources on {cpus} cpus")
-    mp.set_start_method('spawn')  # or 'fork' or 'forkserver'
     with Pool(cpus) as pool:
         results = pool.map(_multiproc_worker, args)
+        
+    # Separate successful results and exceptions
+    success_results = []
+    exceptions = []
+    for success, result in results:
+        if success:
+            success_results.append(result)
+        else:
+            exceptions.append(result)
     elapsed = time.time() - start
     print(f"Done in {elapsed:.3f} s")
-    return sum(results)
+    return (sum(success_results), exceptions)
 
 def _multiproc_worker(args):
     """Wrapper for the source processing (used by Pool)
@@ -189,10 +208,13 @@ def _multiproc_worker(args):
     process = psutil.Process(os.getpid())
     mem = process.memory_info().rss  # in bytes
     print(f"Process src_num ={args[0].src_num} (Memory used: {mem / 1024**2:.2f} MB)")
-    output =  process_one_source(*args)
-    print(f"src_num ={args[0].src_num} done")
-    return output
-
+    try:
+        output =  process_one_source(*args)
+        print(f"src_num ={args[0].src_num} done")
+        return (True, output)
+    except Exception as e:
+        traceback.print_exc()
+        return (False, e)
          
 def process_one_source(param_holder, observation_metadata, session, image_data, image_wcs):
     tab_alerts=[]
