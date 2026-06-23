@@ -18,6 +18,7 @@ Author: Erwan Quintin, erwan.quintin@irap.omp.eu
 
 import numpy as np
 import matplotlib
+from pickle import TRUE
 matplotlib.use('Agg')
 #matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -997,14 +998,24 @@ def load_Chandra_upperlimits(dic_master_sources):
     :return: Nothing; MasterSource objects are updated with the corresponding Upper Limits
     """
     print("Load Chandra upper limits...")
-    raw_data = fits.open(os.path.join(PATHTO.master_sources,"Chandra_UL.fits"), memmap=True)
-    sources_raw = raw_data[1].data
-    sources_raw = Table(sources_raw)
-    for line in tqdm(sources_raw):
-        ms = dic_master_sources[line["MS_ID"]]
-        ms.chandra_ul.append(line["flux_aper_hilim_b"])
-        ms.chandra_ul_dates.append(line["gti_mjd_obs"])
+    exception_risen = ""
 
+    with fits.open(os.path.join(PATHTO.master_sources,"Chandra_UL.fits")) as raw_data:
+    #raw_data = fits.open(os.path.join(PATHTO.master_sources,"Chandra_UL.fits"), memmap=True)
+        try: 
+            sources_raw = raw_data[1].data
+            sources_raw = Table(sources_raw)
+
+            for line in tqdm(sources_raw):
+                ms = dic_master_sources[line["MS_ID"]]
+                ms.chandra_ul.append(line["flux_aper_hilim_b"])
+                ms.chandra_ul_dates.append(line["gti_mjd_obs"])
+
+        except Exception as ex:
+            exception_risen = f"load_Chandra_upperlimits {type(ex).__name__} {ex}"
+    # For some reason, if an exception is risen from within the method core, the memory is not released
+    return  exception_risen
+ 
 def load_specific_master_sources(session, ms_id,obsid, ra_target, dec_target):
     """
     This function will call all previous functions and build the MasterSource, using all relevant archival data.
@@ -1038,7 +1049,9 @@ def load_specific_master_sources(session, ms_id,obsid, ra_target, dec_target):
         #    ms.flux_lum_conv_factor = 4*np.pi*(ms.glade_distance*3.086E+24)**2
         dic_master_sources[ms_id] = ms
     load_specific_XMM_upperlimits(dic_master_sources,ms_id,obsid)
-    load_Chandra_upperlimits(dic_master_sources)
+    msg = load_Chandra_upperlimits(dic_master_sources)
+    if msg != "":
+        raise Exception(msg)
     #print("Master sources loaded!")
     #cmd_cleanup=f"rm {path_to_master_sources}Master_source_MatchOnSource.fits"
     #cmd_cleanup = shlex.split(cmd_cleanup)
